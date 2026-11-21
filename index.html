@@ -616,7 +616,7 @@ Operator TU, 199503032020011005, tu_admin, admin999, admin"
                     <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <div>
                             <h3 class="font-bold text-sm text-slate-800">Daftar Akun Pengguna & Kata Sandi</h3>
-                            <p class="text-[11px] text-slate-500">Admin dapat melihat kata sandi pengguna serta mengubah sandi diri sendiri maupun guru.</p>
+                            <p class="text-[11px] text-slate-500">Admin dapat melihat kata sandi pengguna serta mengubah profil (Nama/NIP) dan sandi diri sendiri maupun guru.</p>
                         </div>
                         <input type="text" id="admin-search-user" oninput="renderUsersTable()" placeholder="Cari nama / username..." class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs w-full sm:w-56">
                     </div>
@@ -640,6 +640,37 @@ Operator TU, 199503032020011005, tu_admin, admin999, admin"
                 </div>
             </section>
         </main>
+    </div>
+
+    <!-- ==================== MODAL 0: EDIT PROFIL & NIP PENGGUNA ==================== -->
+    <div id="edit-profile-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4" onclick="closeModal('edit-profile-modal')">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl animate-fade-in" onclick="event.stopPropagation()">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-bold text-base text-slate-800" id="modal-edit-profile-title">Edit Profil & NIP</h3>
+                <button onclick="closeModal('edit-profile-modal')" class="p-1 text-slate-400 hover:text-slate-600 rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form id="edit-profile-form" class="space-y-4">
+                <input type="hidden" id="modal-edit-user-id">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Username</label>
+                    <input type="text" id="modal-edit-username" disabled class="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-600">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap & Gelar</label>
+                    <input type="text" id="modal-edit-name" required placeholder="Masukkan nama lengkap" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">NIP / ID Pegawai</label>
+                    <input type="text" id="modal-edit-nip" required placeholder="Masukkan NIP / ID Pegawai" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('edit-profile-modal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold">Batal</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <!-- ==================== MODAL 1: GANTI PASSWORD (ADMIN & USER) ==================== -->
@@ -2128,6 +2159,10 @@ Operator TU, 199503032020011005, tu_admin, admin999, admin"
                         </span>
                     </td>
                     <td class="py-3 px-4 text-right whitespace-nowrap space-x-1">
+                        <button onclick="openEditProfileModal('${u.id}', ${isSelf})" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-bold inline-flex items-center gap-1 transition">
+                            <i data-lucide="user-pen" class="w-3 h-3"></i>
+                            <span>Edit NIP</span>
+                        </button>
                         <button onclick="openChangePasswordModal('${u.username}', ${isSelf})" class="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-[11px] font-bold inline-flex items-center gap-1 transition">
                             <i data-lucide="key" class="w-3 h-3"></i>
                             <span>Ganti Sandi</span>
@@ -2161,7 +2196,51 @@ Operator TU, 199503032020011005, tu_admin, admin999, admin"
             renderAdminDashboard();
         }
 
-        // --- 10. MODAL GANTI PASSWORD & MODAL FOTO ---
+        // --- 10. MODAL EDIT PROFIL, GANTI PASSWORD & MODAL FOTO ---
+        function openEditProfileModal(userId, isSelf) {
+            const users = getUsers();
+            const target = users.find(u => u.id === userId);
+            if (!target) return;
+
+            document.getElementById('modal-edit-profile-title').textContent = isSelf ? 'Edit Profil & NIP Saya' : `Edit Profil: ${target.name}`;
+            document.getElementById('modal-edit-user-id').value = target.id;
+            document.getElementById('modal-edit-username').value = `@${target.username}`;
+            document.getElementById('modal-edit-name').value = target.name;
+            document.getElementById('modal-edit-nip').value = target.nip || '';
+
+            const modal = document.getElementById('edit-profile-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            lucide.createIcons();
+        }
+
+        document.getElementById('edit-profile-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const userId = document.getElementById('modal-edit-user-id').value;
+            const newName = document.getElementById('modal-edit-name').value.trim();
+            const newNip = document.getElementById('modal-edit-nip').value.trim();
+
+            const users = getUsers();
+            const idx = users.findIndex(u => u.id === userId);
+            if (idx !== -1) {
+                users[idx].name = newName;
+                users[idx].nip = newNip;
+                saveUsers(users);
+
+                if (currentUser && currentUser.id === userId) {
+                    currentUser.name = newName;
+                    currentUser.nip = newNip;
+                    localStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(currentUser));
+                    document.getElementById('header-user-name').textContent = currentUser.name;
+                    document.getElementById('header-user-nip').textContent = `NIP/ID: ${currentUser.nip} • @${currentUser.username}`;
+                }
+
+                showToast('Data Nama & NIP berhasil diperbarui!', 'success');
+                closeModal('edit-profile-modal');
+                renderUsersTable();
+            }
+        });
+
         function openChangePasswordModal(username, isSelf) {
             const users = getUsers();
             const target = users.find(u => u.username === username);
