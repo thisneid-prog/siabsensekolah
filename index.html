@@ -463,15 +463,32 @@
                 </div>
 
                 <!-- Filter Tanggal & Pencarian -->
-                <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row gap-3 justify-between items-center">
-                    <div class="w-full sm:w-auto flex items-center gap-2">
-                        <label class="text-xs font-semibold text-slate-600 whitespace-nowrap">Filter Tanggal:</label>
-                        <input type="date" id="admin-filter-date" onchange="renderAdminAttendance()" class="w-full sm:w-auto px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
-                        <button onclick="resetDateFilter()" class="px-2.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-semibold">Semua</button>
+                <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm space-y-3">
+                    <div class="flex flex-col sm:flex-row gap-3 justify-between items-center">
+                        <div class="w-full sm:w-auto flex items-center gap-2">
+                            <label class="text-xs font-semibold text-slate-600 whitespace-nowrap">Filter Tanggal:</label>
+                            <input type="date" id="admin-filter-date" onchange="renderAdminAttendance()" class="w-full sm:w-auto px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
+                            <button onclick="resetDateFilter()" class="px-2.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-semibold">Semua</button>
+                        </div>
+                        <div class="w-full sm:w-64 relative">
+                            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                            <input type="text" id="admin-search-att" oninput="renderAdminAttendance()" placeholder="Cari nama guru..." class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+                        </div>
                     </div>
-                    <div class="w-full sm:w-64 relative">
-                        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
-                        <input type="text" id="admin-search-att" oninput="renderAdminAttendance()" placeholder="Cari nama guru..." class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+
+                    <!-- Tombol Unduh & Print Laporan -->
+                    <div class="pt-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+                        <span class="text-[11px] text-slate-500">Ekspor data sesuai filter di atas:</span>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="exportAttendanceCSV()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition">
+                                <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
+                                <span>Unduh Excel (.CSV)</span>
+                            </button>
+                            <button type="button" onclick="printAttendanceReport()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition">
+                                <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                                <span>Cetak / Simpan PDF</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -749,6 +766,29 @@ Operator TU, 199503032020011005, tu_admin, admin999, admin"
             </div>
         </div>
     </div>
+
+    <!-- ==================== AREA KHUSUS PRINT LAPORAN (TERSEMBUNYI DI LAYAR) ==================== -->
+    <div id="print-report-area" class="hidden print:block p-6 bg-white text-slate-900">
+        <!-- Diisi otomatis saat tombol Cetak diklik -->
+    </div>
+
+    <style>
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #print-report-area, #print-report-area * {
+                visibility: visible;
+            }
+            #print-report-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                display: block !important;
+            }
+        }
+    </style>
 
     <!-- ==================== SCRIPT LOGIKA APLIKASI ==================== -->
     <script>
@@ -1491,25 +1531,26 @@ Operator TU, 199503032020011005, tu_admin, admin999, admin"
         function renderGuruHistory() {
             const records = getAttendances().filter(r => r.userId === currentUser.id);
             document.getElementById('guru-history-count').textContent = `${records.length} Catatan`;
-            const listEl = document.getElementById('guru-history-list');
+            const container = document.getElementById('guru-history-list');
 
             if (records.length === 0) {
-                listEl.innerHTML = `
-                    <div class="bg-white p-8 rounded-2xl border border-slate-200/80 text-center text-slate-400">
-                        <i data-lucide="calendar-x" class="w-10 h-10 mx-auto mb-2 opacity-50"></i>
-                        <p class="text-xs font-medium">Belum ada riwayat presensi yang tercatat.</p>
+                container.innerHTML = `
+                    <div class="bg-white rounded-2xl border border-slate-200/80 p-8 text-center text-slate-400">
+                        <i data-lucide="inbox" class="w-10 h-10 mx-auto mb-2 opacity-50"></i>
+                        <p class="text-xs font-medium">Belum ada riwayat presensi tercatat.</p>
                     </div>`;
                 lucide.createIcons();
                 return;
             }
 
-            listEl.innerHTML = records.map(r => {
-                const badgeColors = {
-                    'Hadir': 'bg-emerald-100 text-emerald-700',
-                    'Izin': 'bg-amber-100 text-amber-700',
-                    'Cuti': 'bg-sky-100 text-sky-700',
-                    'Alpa': 'bg-rose-100 text-rose-700'
-                };
+            const badgeColors = {
+                'Hadir': 'bg-emerald-100 text-emerald-700',
+                'Izin': 'bg-amber-100 text-amber-700',
+                'Cuti': 'bg-sky-100 text-sky-700',
+                'Alpa': 'bg-rose-100 text-rose-700'
+            };
+
+            container.innerHTML = records.map(r => {
                 const hasPhoto = r.photoIn || r.photoOut;
                 return `
                 <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between gap-3">
@@ -1573,7 +1614,7 @@ Operator TU, 199503032020011005, tu_admin, admin999, admin"
             renderAdminAttendance();
         }
 
-        function renderAdminAttendance() {
+        function getFilteredAttendanceRecords() {
             const filterDate = document.getElementById('admin-filter-date').value;
             const search = document.getElementById('admin-search-att').value.toLowerCase();
             let records = getAttendances();
@@ -1584,6 +1625,11 @@ Operator TU, 199503032020011005, tu_admin, admin999, admin"
             if (search) {
                 records = records.filter(r => r.userName.toLowerCase().includes(search) || (r.userNip && r.userNip.includes(search)));
             }
+            return records;
+        }
+
+        function renderAdminAttendance() {
+            const records = getFilteredAttendanceRecords();
 
             const tbody = document.getElementById('admin-attendance-tbody');
             if (records.length === 0) {
@@ -1640,20 +1686,121 @@ Operator TU, 199503032020011005, tu_admin, admin999, admin"
             renderAdminDashboard();
         }
 
-        // --- 9. MANAJEMEN PENGGUNA ADMIN (SINGLE, BULK, LIHAT & UBAH PASSWORD) ---
-        function switchAddUserMode(mode) {
-            document.getElementById('single-user-form').classList.toggle('hidden', mode !== 'single');
-            document.getElementById('bulk-user-form').classList.toggle('hidden', mode !== 'bulk');
-
-            const btnSingle = document.getElementById('btn-mode-single');
-            const btnBulk = document.getElementById('btn-mode-bulk');
-            if (mode === 'single') {
-                btnSingle.className = 'pb-3 text-xs font-bold border-b-2 border-indigo-600 text-indigo-600';
-                btnBulk.className = 'pb-3 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700';
-            } else {
-                btnBulk.className = 'pb-3 text-xs font-bold border-b-2 border-indigo-600 text-indigo-600';
-                btnSingle.className = 'pb-3 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700';
+        // --- EKSPOR CSV (EXCEL) & CETAK LAPORAN ABSENSI ---
+        function exportAttendanceCSV() {
+            const records = getFilteredAttendanceRecords();
+            if (records.length === 0) {
+                showToast('Tidak ada data presensi untuk diunduh.', 'error');
+                return;
             }
+
+            const filterDate = document.getElementById('admin-filter-date').value;
+            const headers = ['No', 'Nama Guru', 'NIP / ID Pegawai', 'Tanggal', 'Jam Masuk', 'Metode Masuk', 'Jam Pulang', 'Metode Pulang', 'Status', 'Catatan'];
+            
+            const escapeCSV = (val) => `"${String(val || '-').replace(/"/g, '""')}"`;
+            const rows = records.map((r, idx) => [
+                idx + 1,
+                escapeCSV(r.userName),
+                escapeCSV(r.userNip),
+                escapeCSV(r.date),
+                escapeCSV(r.timeIn),
+                escapeCSV(r.methodIn),
+                escapeCSV(r.timeOut),
+                escapeCSV(r.methodOut),
+                escapeCSV(r.status),
+                escapeCSV(r.notes)
+            ].join(','));
+
+            // Tambahkan BOM UTF-8 (\uFEFF) agar Excel langsung membaca kolom koma dengan rapi
+            const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `Laporan_Absensi_Guru_${filterDate || 'Semua_Tanggal'}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            showToast(`Berhasil mengunduh ${records.length} data laporan absensi!`, 'success');
+        }
+
+        function printAttendanceReport() {
+            const records = getFilteredAttendanceRecords();
+            if (records.length === 0) {
+                showToast('Tidak ada data presensi untuk dicetak.', 'error');
+                return;
+            }
+
+            const filterDate = document.getElementById('admin-filter-date').value;
+            const periodeText = filterDate ? `Tanggal: ${formatIndoDate(filterDate)}` : 'Periode: Semua Tanggal Tercatat';
+            const printDate = formatIndoDate(getTodayISO());
+
+            const rowsHtml = records.map((r, i) => `
+                <tr>
+                    <td style="border: 1px solid #cbd5e1; padding: 6px 8px; text-align: center;">${i + 1}</td>
+                    <td style="border: 1px solid #cbd5e1; padding: 6px 8px;">
+                        <strong>${r.userName}</strong><br>
+                        <span style="font-size: 10px; color: #475569;">NIP: ${r.userNip || '-'}</span>
+                    </td>
+                    <td style="border: 1px solid #cbd5e1; padding: 6px 8px; white-space: nowrap;">${formatIndoDate(r.date)}</td>
+                    <td style="border: 1px solid #cbd5e1; padding: 6px 8px; text-align: center;">${r.timeIn || '-'}</td>
+                    <td style="border: 1px solid #cbd5e1; padding: 6px 8px; text-align: center;">${r.timeOut || '-'}</td>
+                    <td style="border: 1px solid #cbd5e1; padding: 6px 8px; text-align: center; font-weight: bold;">${r.status}</td>
+                    <td style="border: 1px solid #cbd5e1; padding: 6px 8px;">${r.methodIn || '-'} ${r.notes ? `(${r.notes})` : ''}</td>
+                </tr>
+            `).join('');
+
+            const printArea = document.getElementById('print-report-area');
+            printArea.innerHTML = `
+                <div style="font-family: Arial, sans-serif; color: #0f172a;">
+                    <div style="text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 10px; margin-bottom: 16px;">
+                        <h2 style="margin: 0; font-size: 18px; text-transform: uppercase;">Laporan Rekapitulasi Kehadiran Guru</h2>
+                        <p style="margin: 4px 0 0; font-size: 12px; color: #334155;">Sistem Presensi Digital Sekolah (SiAbsen Guru)</p>
+                        <p style="margin: 2px 0 0; font-size: 11px; font-weight: bold;">${periodeText}</p>
+                    </div>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                        <thead>
+                            <tr style="background-color: #f1f5f9;">
+                                <th style="border: 1px solid #cbd5e1; padding: 8px; width: 32px;">No</th>
+                                <th style="border: 1px solid #cbd5e1; padding: 8px; text-align: left;">Nama Guru & NIP</th>
+                                <th style="border: 1px solid #cbd5e1; padding: 8px; text-align: left;">Tanggal</th>
+                                <th style="border: 1px solid #cbd5e1; padding: 8px;">Masuk</th>
+                                <th style="border: 1px solid #cbd5e1; padding: 8px;">Pulang</th>
+                                <th style="border: 1px solid #cbd5e1; padding: 8px;">Status</th>
+                                <th style="border: 1px solid #cbd5e1; padding: 8px; text-align: left;">Metode & Keterangan</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rowsHtml}</tbody>
+                    </table>
+                    <div style="margin-top: 28px; display: flex; justify-content: flex-end;">
+                        <div style="text-align: center; width: 220px; font-size: 11px;">
+                            <p style="margin: 0;">Dicetak pada: ${printDate}</p>
+                            <p style="margin: 4px 0 48px;">Administrator / Kepala Sekolah,</p>
+                            <p style="margin: 0; font-weight: bold; text-decoration: underline;">${currentUser ? currentUser.name : 'Admin Sekolah'}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            window.print();
+        }
+
+        // --- 9. MANAJEMEN PENGGUNA (ADMIN) ---
+        function switchAddUserMode(mode) {
+            const isSingle = mode === 'single';
+            document.getElementById('single-user-form').classList.toggle('hidden', !isSingle);
+            document.getElementById('bulk-user-form').classList.toggle('hidden', isSingle);
+
+            document.getElementById('btn-mode-single').className = isSingle
+                ? 'pb-3 text-xs font-bold border-b-2 border-indigo-600 text-indigo-600'
+                : 'pb-3 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700';
+
+            document.getElementById('btn-mode-bulk').className = !isSingle
+                ? 'pb-3 text-xs font-bold border-b-2 border-indigo-600 text-indigo-600'
+                : 'pb-3 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700';
         }
 
         // Tambah 1 Pengguna
