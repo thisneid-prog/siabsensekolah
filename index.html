@@ -759,6 +759,17 @@ Operator TU, 199503032020011005, tu_admin, admin999, admin"
                             </div>
                         </button>
                     </div>
+                    <!-- Tombol Salin Link Otomatis untuk Guru -->
+                    <button type="button" onclick="copyTeacherInviteLink()" class="w-full p-3 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-900 rounded-xl font-semibold text-left flex items-center justify-between gap-2 transition">
+                        <div class="flex items-center gap-2.5">
+                            <i data-lucide="share-2" class="w-4 h-4 shrink-0 text-indigo-600"></i>
+                            <div>
+                                <p class="text-[11px] font-bold">Salin Link Khusus Guru (Otomatis Terhubung)</p>
+                                <p class="text-[10px] text-indigo-600">Guru tinggal klik link ini & login tanpa perlu setting Cloud</p>
+                            </div>
+                        </div>
+                        <span class="px-2 py-1 bg-indigo-600 text-white text-[10px] font-bold rounded-lg shrink-0">Salin Link</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -766,6 +777,10 @@ Operator TU, 199503032020011005, tu_admin, admin999, admin"
 
     <!-- ==================== SCRIPT LOGIKA APLIKASI ==================== -->
     <script>
+        // --- 0. KONFIGURASI URL CLOUD PERMANEN (OPSIONAL) ---
+        // Tempel URL Firebase Anda di dalam tanda kutip di bawah ini agar semua perangkat otomatis terhubung tanpa perlu pengaturan manual:
+        const DEFAULT_CLOUD_URL = "https://siabsen-94190-default-rtdb.asia-southeast1.firebasedatabase.app";
+
         // --- 1. INISIALISASI DATA, LOCALSTORAGE & FIREBASE CLOUD SYNC ---
         const STORAGE_USERS_KEY = 'siabsen_guru_users_v1';
         const STORAGE_ATT_KEY = 'siabsen_guru_attendance_v1';
@@ -775,9 +790,34 @@ Operator TU, 199503032020011005, tu_admin, admin999, admin"
         let cloudSyncTimer = null;
         let isSyncing = false;
 
+        // Cek apakah ada parameter ?db= pada tautan yang dibagikan Admin
+        function applyUrlParamConfig() {
+            const params = new URLSearchParams(window.location.search);
+            const dbParam = params.get('db');
+            if (dbParam && dbParam.startsWith('https://')) {
+                const cleanUrl = dbParam.trim().replace(/\/+$/, '');
+                localStorage.setItem(STORAGE_CLOUD_URL_KEY, cleanUrl);
+                // Bersihkan parameter dari address bar agar tautan terlihat rapi
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        }
+
         function getCloudUrl() {
-            const url = localStorage.getItem(STORAGE_CLOUD_URL_KEY);
-            return url ? url.replace(/\/+$/, '') : '';
+            const saved = localStorage.getItem(STORAGE_CLOUD_URL_KEY);
+            const url = saved || DEFAULT_CLOUD_URL;
+            return url ? url.trim().replace(/\/+$/, '') : '';
+        }
+
+        function copyTeacherInviteLink() {
+            const url = getCloudUrl();
+            if (!url) {
+                showToast('Simpan URL Firebase terlebih dahulu sebelum menyalin link guru!', 'error');
+                return;
+            }
+            const basePage = window.location.origin + window.location.pathname;
+            const inviteLink = `${basePage}?db=${encodeURIComponent(url)}`;
+            copyText(inviteLink);
+            showToast('Link khusus guru berhasil disalin! Bagikan ke grup WhatsApp guru.', 'success');
         }
 
         function updateCloudStatusUI() {
@@ -1854,6 +1894,7 @@ Operator TU, 199503032020011005, tu_admin, admin999, admin"
 
         // --- 11. BOOTSTRAP APLIKASI SAAT HALAMAN DIMUAT ---
         window.addEventListener('DOMContentLoaded', () => {
+            applyUrlParamConfig(); // Otomatis terapkan konfigurasi jika dibuka dari Link Khusus Guru
             getUsers(); // Pastikan data default tersimpan
             updateCloudStatusUI();
             startCloudPolling();
