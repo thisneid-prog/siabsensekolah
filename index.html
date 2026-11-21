@@ -415,9 +415,21 @@
 
             <!-- TAB 3: RIWAYAT ABSENSI PRIBADI GURU -->
             <section id="guru-sec-riwayat" class="hidden space-y-3 animate-fade-in">
-                <div class="flex items-center justify-between">
-                    <h3 class="font-bold text-sm text-slate-800">Riwayat Presensi Saya</h3>
-                    <span id="guru-history-count" class="text-xs font-semibold text-slate-500">0 Catatan</span>
+                <div class="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <h3 class="font-bold text-sm text-slate-800">Riwayat Presensi Saya</h3>
+                        <span id="guru-history-count" class="text-xs font-semibold text-slate-500">0 Catatan</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="exportGuruCSV()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition">
+                            <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
+                            <span>Excel (.CSV)</span>
+                        </button>
+                        <button type="button" onclick="printGuruReport()" class="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition">
+                            <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                            <span>Cetak / PDF</span>
+                        </button>
+                    </div>
                 </div>
                 <div id="guru-history-list" class="space-y-3">
                     <!-- Diisi via JS -->
@@ -1679,24 +1691,117 @@ Operator TU, 199503032020011005, tu_admin, admin999, admin"
             lucide.createIcons();
         }
 
-        function deleteAttendance(id) {
-            const records = getAttendances().filter(r => r.id !== id);
-            saveAttendances(records);
-            showToast('Data presensi berhasil dihapus.', 'info');
-            renderAdminDashboard();
-        }
-
-        // --- EKSPOR CSV (EXCEL) & CETAK LAPORAN ABSENSI ---
-        function exportAttendanceCSV() {
-            const records = getFilteredAttendanceRecords();
+        // --- EKSPOR CSV & CETAK LAPORAN PRIBADI GURU ---
+        function exportGuruCSV() {
+            const records = getAttendances().filter(r => r.userId === currentUser.id);
             if (records.length === 0) {
-                showToast('Tidak ada data presensi untuk diunduh.', 'error');
+                showToast('Belum ada riwayat presensi untuk diunduh.', 'error');
                 return;
             }
 
-            const filterDate = document.getElementById('admin-filter-date').value;
-            const headers = ['No', 'Nama Guru', 'NIP / ID Pegawai', 'Tanggal', 'Jam Masuk', 'Metode Masuk', 'Jam Pulang', 'Metode Pulang', 'Status', 'Catatan'];
-            
+            const headers = ['No', 'Tanggal', 'Jam Masuk', 'Metode Masuk', 'Jam Pulang', 'Metode Pulang', 'Status', 'Catatan'];
+            const escapeCSV = (val) => `"${String(val || '-').replace(/"/g, '""')}"`;
+            const rows = records.map((r, idx) => [
+                idx + 1,
+                escapeCSV(r.date),
+                escapeCSV(r.timeIn),
+                escapeCSV(r.methodIn),
+                escapeCSV(r.timeOut),
+                escapeCSV(r.methodOut),
+                escapeCSV(r.status),
+                escapeCSV(r.notes)
+            ].join(','));
+
+            const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `Riwayat_Absensi_${currentUser.username}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            showToast('Berhasil mengunduh riwayat presensi Anda!', 'success');
+        }
+
+        function printGuruReport() {
+            const records = getAttendances().filter(r => r.userId === currentUser.id);
+            if (records.length === 0) {
+                showToast('Belum ada riwayat presensi untuk dicetak.', 'error');
+                return;
+            }
+
+            const printDate = formatIndoDate(getTodayISO());
+            const totalHadir = records.filter(r => r.status === 'Hadir').length;
+            const totalIzin = records.filter(r => r.status === 'Izin' || r.status === 'Cuti').length;
+            const totalAlpa = records.filter(r => r.status === 'Alpa').length;
+
+            const rowsHtml = records.map((r, i) => `
+                <tr>
+                    <td style="border: 1px solid #cbd5e1; padding: 6px 8px; text-align: center;">${i + 1}</td>
+                    <td style="border: 1px solid #cbd5e1; padding: 6px 8px; white-space: nowrap;">${formatIndoDate(r.date)}</td>
+                    <td style="border: 1px solid #cbd5e1; padding: 6px 8px; text-align: center;">${r.timeIn || '-'}</td>
+                    <td style="border: 1px solid #cbd5e1; padding: 6px 8px; text-align: center;">${r.timeOut || '-'}</td>
+                    <td style="border: 1px solid #cbd5e1; padding: 6px 8px; text-align: center; font-weight: bold;">${r.status}</td>
+                    <td style="border: 1px solid #cbd5e1; padding: 6px 8px;">${r.methodIn || '-'} ${r.notes ? `(${r.notes})` : ''}</td>
+                </tr>
+            `).join('');
+
+            const printArea = document.getElementById('print-report-area');
+            printArea.innerHTML = `
+                <div style="font-family: Arial, sans-serif; color: #0f172a;">
+                    <div style="text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 10px; margin-bottom: 14px;">
+                        <h2 style="margin: 0; font-size: 18px; text-transform: uppercase;">Laporan Rekapitulasi Kehadiran Individu Guru</h2>
+                        <p style="margin: 4px 0 0; font-size: 12px; color: #334155;">Sistem Presensi Digital Sekolah (SiAbsen Guru)</p>
+                    </div>
+                    <div style="margin-bottom: 14px; font-size: 12px; line-height: 1.6;">
+                        <div><strong>Nama Lengkap:</strong> ${currentUser.name}</div>
+                        <div><strong>NIP / ID Pegawai:</strong> ${currentUser.nip || '-'}</div>
+                        <div><strong>Ringkasan:</strong> Hadir (${totalHadir}) • Izin/Cuti (${totalIzin}) • Alpa (${totalAlpa})</div>
+                    </div>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                        <thead>
+                            <tr style="background-color: #f1f5f9;">
+                                <th style="border: 1px solid #cbd5e1; padding: 8px; width: 32px;">No</th>
+                                <th style="border: 1px solid #cbd5e1; padding: 8px; text-align: left;">Tanggal</th>
+                                <th style="border: 1px solid #cbd5e1; padding: 8px;">Jam Masuk</th>
+                                <th style="border: 1px solid #cbd5e1; padding: 8px;">Jam Pulang</th>
+                                <th style="border: 1px solid #cbd5e1; padding: 8px;">Status</th>
+                                <th style="border: 1px solid #cbd5e1; padding: 8px; text-align: left;">Metode & Keterangan</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rowsHtml}</tbody>
+                    </table>
+                    <div style="margin-top: 28px; display: flex; justify-content: space-between; font-size: 11px;">
+                        <div style="text-align: center; width: 220px;">
+                            <p style="margin: 0;">Mengetahui,</p>
+                            <p style="margin: 4px 0 48px;">Kepala Sekolah / Admin,</p>
+                            <p style="margin: 0;">( ________________________ )</p>
+                        </div>
+                        <div style="text-align: center; width: 220px;">
+                            <p style="margin: 0;">Dicetak pada: ${printDate}</p>
+                            <p style="margin: 4px 0 48px;">Guru Yang Bersangkutan,</p>
+                            <p style="margin: 0; font-weight: bold; text-decoration: underline;">${currentUser.name}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            window.print();
+        }
+
+        // --- EKSPOR CSV & CETAK LAPORAN ADMIN ---
+        function exportAttendanceCSV() {
+            const records = getFilteredAttendanceRecords();
+            if (records.length === 0) {
+                showToast('Tidak ada data absensi untuk diunduh.', 'error');
+                return;
+            }
+
+            const headers = ['No', 'Nama Guru', 'NIP', 'Tanggal', 'Jam Masuk', 'Metode Masuk', 'Jam Pulang', 'Metode Pulang', 'Status', 'Catatan'];
             const escapeCSV = (val) => `"${String(val || '-').replace(/"/g, '""')}"`;
             const rows = records.map((r, idx) => [
                 idx + 1,
@@ -1711,40 +1816,39 @@ Operator TU, 199503032020011005, tu_admin, admin999, admin"
                 escapeCSV(r.notes)
             ].join(','));
 
-            // Tambahkan BOM UTF-8 (\uFEFF) agar Excel langsung membaca kolom koma dengan rapi
             const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\n');
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
 
+            const filterDate = document.getElementById('admin-filter-date').value;
+            const fileName = filterDate ? `Laporan_Absensi_Guru_${filterDate}.csv` : `Laporan_Absensi_Guru_Semua.csv`;
+
             const link = document.createElement('a');
             link.href = url;
-            link.download = `Laporan_Absensi_Guru_${filterDate || 'Semua_Tanggal'}.csv`;
+            link.download = fileName;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
 
-            showToast(`Berhasil mengunduh ${records.length} data laporan absensi!`, 'success');
+            showToast('File laporan Excel (.CSV) berhasil diunduh!', 'success');
         }
 
         function printAttendanceReport() {
             const records = getFilteredAttendanceRecords();
             if (records.length === 0) {
-                showToast('Tidak ada data presensi untuk dicetak.', 'error');
+                showToast('Tidak ada data absensi untuk dicetak.', 'error');
                 return;
             }
 
             const filterDate = document.getElementById('admin-filter-date').value;
-            const periodeText = filterDate ? `Tanggal: ${formatIndoDate(filterDate)}` : 'Periode: Semua Tanggal Tercatat';
+            const periodLabel = filterDate ? `Tanggal: ${formatIndoDate(filterDate)}` : 'Periode: Semua Data Tercatat';
             const printDate = formatIndoDate(getTodayISO());
 
             const rowsHtml = records.map((r, i) => `
                 <tr>
                     <td style="border: 1px solid #cbd5e1; padding: 6px 8px; text-align: center;">${i + 1}</td>
-                    <td style="border: 1px solid #cbd5e1; padding: 6px 8px;">
-                        <strong>${r.userName}</strong><br>
-                        <span style="font-size: 10px; color: #475569;">NIP: ${r.userNip || '-'}</span>
-                    </td>
+                    <td style="border: 1px solid #cbd5e1; padding: 6px 8px;"><strong>${r.userName}</strong><br><span style="font-size: 10px; color: #475569;">NIP: ${r.userNip || '-'}</span></td>
                     <td style="border: 1px solid #cbd5e1; padding: 6px 8px; white-space: nowrap;">${formatIndoDate(r.date)}</td>
                     <td style="border: 1px solid #cbd5e1; padding: 6px 8px; text-align: center;">${r.timeIn || '-'}</td>
                     <td style="border: 1px solid #cbd5e1; padding: 6px 8px; text-align: center;">${r.timeOut || '-'}</td>
@@ -1756,10 +1860,13 @@ Operator TU, 199503032020011005, tu_admin, admin999, admin"
             const printArea = document.getElementById('print-report-area');
             printArea.innerHTML = `
                 <div style="font-family: Arial, sans-serif; color: #0f172a;">
-                    <div style="text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 10px; margin-bottom: 16px;">
+                    <div style="text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 10px; margin-bottom: 14px;">
                         <h2 style="margin: 0; font-size: 18px; text-transform: uppercase;">Laporan Rekapitulasi Kehadiran Guru</h2>
                         <p style="margin: 4px 0 0; font-size: 12px; color: #334155;">Sistem Presensi Digital Sekolah (SiAbsen Guru)</p>
-                        <p style="margin: 2px 0 0; font-size: 11px; font-weight: bold;">${periodeText}</p>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 12px; color: #334155;">
+                        <span><strong>${periodLabel}</strong></span>
+                        <span>Dicetak pada: ${printDate}</span>
                     </div>
                     <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
                         <thead>
@@ -1775,17 +1882,24 @@ Operator TU, 199503032020011005, tu_admin, admin999, admin"
                         </thead>
                         <tbody>${rowsHtml}</tbody>
                     </table>
-                    <div style="margin-top: 28px; display: flex; justify-content: flex-end;">
-                        <div style="text-align: center; width: 220px; font-size: 11px;">
-                            <p style="margin: 0;">Dicetak pada: ${printDate}</p>
-                            <p style="margin: 4px 0 48px;">Administrator / Kepala Sekolah,</p>
-                            <p style="margin: 0; font-weight: bold; text-decoration: underline;">${currentUser ? currentUser.name : 'Admin Sekolah'}</p>
+                    <div style="margin-top: 28px; display: flex; justify-content: flex-end; font-size: 11px;">
+                        <div style="text-align: center; width: 220px;">
+                            <p style="margin: 0;">Mengetahui,</p>
+                            <p style="margin: 4px 0 48px;">Kepala Sekolah / Administrator,</p>
+                            <p style="margin: 0; font-weight: bold;">( ________________________ )</p>
                         </div>
                     </div>
                 </div>
             `;
 
             window.print();
+        }
+
+        function deleteAttendance(id) {
+            const updated = getAttendances().filter(r => r.id !== id);
+            saveAttendances(updated);
+            showToast('Data presensi berhasil dihapus.', 'info');
+            renderAdminDashboard();
         }
 
         // --- 9. MANAJEMEN PENGGUNA (ADMIN) ---
