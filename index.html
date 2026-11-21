@@ -1,0 +1,1875 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SiAbsen Guru - Sistem Presensi Digital Sekolah</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & Plus Jakarta Sans -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Kustomisasi Scrollbar & Utilitas Mobile */
+        body {
+            -webkit-tap-highlight-color: transparent;
+            background-color: #f8fafc;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+        /* Animasi halus */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.25s ease-out forwards;
+        }
+        /* Video cermin untuk kamera depan */
+        .mirror-video {
+            transform: scaleX(-1);
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- ==================== NOTIFIKASI TOAST / MESSAGE BOX ==================== -->
+    <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-md pointer-events-none flex flex-col gap-2"></div>
+
+    <!-- ==================== HALAMAN 1: LOGIN & LUPA SANDI ==================== -->
+    <div id="auth-view" class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-indigo-600 via-blue-700 to-slate-900">
+        <div class="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden animate-fade-in">
+            <!-- Header Brand -->
+            <div class="bg-indigo-600 px-6 py-8 text-center text-white relative overflow-hidden">
+                <div class="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-xl"></div>
+                <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-indigo-400/20 rounded-full blur-xl"></div>
+                <button type="button" onclick="openCloudSetupModal()" class="absolute top-3.5 right-3.5 px-2.5 py-1.5 bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/25 rounded-xl text-[11px] font-semibold flex items-center gap-1.5 transition">
+                    <span id="login-cloud-dot" class="w-2 h-2 rounded-full bg-amber-400"></span>
+                    <span id="login-cloud-label">Mode Lokal</span>
+                </button>
+                <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner border border-white/30">
+                    <i data-lucide="fingerprint" class="w-9 h-9 text-white"></i>
+                </div>
+                <h1 class="font-display text-2xl font-extrabold tracking-tight">SiAbsen Guru</h1>
+                <p class="text-indigo-100 text-xs mt-1">Sistem Presensi Digital & Manajemen Kehadiran</p>
+            </div>
+
+            <!-- Form Login -->
+            <div id="login-box" class="p-6 sm:p-8">
+                <h2 class="text-lg font-bold text-slate-800 mb-1">Selamat Datang Kembali</h2>
+                <p class="text-xs text-slate-500 mb-6">Silakan masuk menggunakan akun yang terdaftar di sekolah.</p>
+
+                <form id="login-form" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1.5">Username</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                                <i data-lucide="user" class="w-4 h-4"></i>
+                            </span>
+                            <input type="text" id="login-username" required placeholder="Masukkan username Anda"
+                                class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label class="block text-xs font-semibold text-slate-700">Kata Sandi</label>
+                            <button type="button" onclick="toggleForgotView(true)" class="text-xs font-semibold text-indigo-600 hover:text-indigo-700">
+                                Lupa sandi?
+                            </button>
+                        </div>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                                <i data-lucide="lock" class="w-4 h-4"></i>
+                            </span>
+                            <input type="password" id="login-password" required placeholder="Masukkan kata sandi"
+                                class="w-full pl-10 pr-11 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+                            <button type="button" onclick="togglePasswordVisibility('login-password', this)" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600">
+                                <i data-lucide="eye" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full py-3.5 px-4 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] text-white font-semibold rounded-xl shadow-lg shadow-indigo-200 transition flex items-center justify-center gap-2 text-sm">
+                        <span>Masuk Sekarang</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
+                </form>
+
+                <!-- Info Akun Demo Cepat -->
+                <div class="mt-6 pt-5 border-t border-slate-100">
+                    <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider text-center mb-3">Akses Cepat Akun Demo</p>
+                    <div class="grid grid-cols-2 gap-2.5">
+                        <button type="button" onclick="fillDemoLogin('admin', 'admin123')" class="p-2.5 bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 rounded-xl text-left transition group">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-700 group-hover:text-indigo-700">Admin Sekolah</span>
+                                <span class="px-1.5 py-0.5 text-[10px] font-semibold bg-amber-100 text-amber-700 rounded">Admin</span>
+                            </div>
+                            <p class="text-[11px] text-slate-500 mt-0.5">admin / admin123</p>
+                        </button>
+                        <button type="button" onclick="fillDemoLogin('guru1', 'guru123')" class="p-2.5 bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 rounded-xl text-left transition group">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-700 group-hover:text-indigo-700">Budi Santoso</span>
+                                <span class="px-1.5 py-0.5 text-[10px] font-semibold bg-emerald-100 text-emerald-700 rounded">Guru</span>
+                            </div>
+                            <p class="text-[11px] text-slate-500 mt-0.5">guru1 / guru123</p>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Lupa Sandi -->
+            <div id="forgot-box" class="p-6 sm:p-8 hidden">
+                <button type="button" onclick="toggleForgotView(false)" class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-indigo-600 mb-4">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                    <span>Kembali ke Login</span>
+                </button>
+                <h2 class="text-lg font-bold text-slate-800 mb-1">Pemulihan Kata Sandi</h2>
+                <p class="text-xs text-slate-500 mb-5">Verifikasi Username dan NIP/ID Pegawai Anda untuk mengatur ulang kata sandi baru secara langsung.</p>
+
+                <form id="forgot-form" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Username Terdaftar</label>
+                        <input type="text" id="forgot-username" required placeholder="Contoh: guru1"
+                            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">NIP / ID Pegawai (Verifikasi)</label>
+                        <input type="text" id="forgot-nip" required placeholder="Contoh: 198501012010011001"
+                            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Kata Sandi Baru</label>
+                        <input type="password" id="forgot-new-password" required minlength="4" placeholder="Minimal 4 karakter"
+                            class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-md transition text-sm">
+                        Simpan Sandi Baru
+                    </button>
+                </form>
+                <div class="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-800">
+                    <strong>Catatan:</strong> Jika lupa NIP/ID Pegawai, silakan hubungi Admin Sekolah agar kata sandi Anda diatur ulang melalui panel Admin.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== HALAMAN 2: APLIKASI UTAMA (GURU & ADMIN) ==================== -->
+    <div id="app-view" class="hidden flex-1 flex flex-col max-w-5xl w-full mx-auto bg-slate-50 shadow-sm min-h-screen">
+        
+        <!-- Top Navigation Bar -->
+        <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold shadow-sm">
+                    <i data-lucide="fingerprint" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 id="header-user-name" class="font-display font-bold text-sm sm:text-base text-slate-800 leading-tight">Nama Pengguna</h1>
+                        <span id="header-user-role" class="px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-indigo-100 text-indigo-700">Role</span>
+                    </div>
+                    <p id="header-user-nip" class="text-[11px] text-slate-500">NIP: -</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <!-- Status & Pengaturan Cloud -->
+                <button onclick="openCloudSetupModal()" title="Pengaturan Sinkronisasi Cloud" class="px-2.5 py-2 bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 rounded-xl border border-slate-200 text-xs font-semibold flex items-center gap-1.5 transition">
+                    <span id="header-cloud-dot" class="w-2 h-2 rounded-full bg-amber-500"></span>
+                    <span id="header-cloud-label" class="hidden sm:inline">Lokal</span>
+                    <i data-lucide="cloud" class="w-3.5 h-3.5"></i>
+                </button>
+                <!-- Tombol Ganti Password Sendiri -->
+                <button onclick="openChangePasswordModal(currentUser.username, true)" title="Ganti Kata Sandi Saya" class="p-2.5 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl border border-slate-200 transition">
+                    <i data-lucide="key-round" class="w-4 h-4"></i>
+                </button>
+                <!-- Tombol Logout -->
+                <button onclick="logout()" title="Keluar" class="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">Keluar</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Banner Waktu Realtime (Selalu Tampil) -->
+        <div class="px-4 pt-4">
+            <div class="bg-gradient-to-r from-indigo-600 via-indigo-700 to-blue-700 rounded-2xl p-4 sm:p-5 text-white shadow-lg shadow-indigo-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                    <p class="text-indigo-200 text-xs font-medium flex items-center gap-1.5">
+                        <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                        <span id="realtime-date">Memuat tanggal...</span>
+                    </p>
+                    <div class="flex items-baseline gap-2 mt-1">
+                        <span id="realtime-clock" class="font-display text-3xl sm:text-4xl font-extrabold tracking-tight">00:00:00</span>
+                        <span class="text-xs font-semibold text-indigo-200">WIB</span>
+                    </div>
+                </div>
+                <div class="bg-white/15 backdrop-blur-sm border border-white/20 rounded-xl px-3.5 py-2.5 text-xs">
+                    <p class="text-indigo-100 text-[11px]">Status Presensi Hari Ini:</p>
+                    <p id="today-status-badge" class="font-bold text-white text-sm mt-0.5">Belum Absen Masuk</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== DASHBOARD KHUSUS GURU ==================== -->
+        <main id="guru-dashboard" class="hidden flex-1 p-4 space-y-5 pb-20">
+            
+            <!-- Navigasi Tab Guru (Mobile Friendly) -->
+            <div class="grid grid-cols-3 gap-2 bg-slate-200/70 p-1.5 rounded-2xl">
+                <button onclick="switchGuruTab('cepat')" id="tab-guru-cepat" class="py-2.5 px-2 rounded-xl text-xs font-bold transition bg-white text-indigo-600 shadow-sm flex items-center justify-center gap-1.5">
+                    <i data-lucide="camera" class="w-4 h-4"></i>
+                    <span>Absen Harian</span>
+                </button>
+                <button onclick="switchGuruTab('manual')" id="tab-guru-manual" class="py-2.5 px-2 rounded-xl text-xs font-bold transition text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5">
+                    <i data-lucide="file-check-2" class="w-4 h-4"></i>
+                    <span>Manual / Izin</span>
+                </button>
+                <button onclick="switchGuruTab('riwayat')" id="tab-guru-riwayat" class="py-2.5 px-2 rounded-xl text-xs font-bold transition text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5">
+                    <i data-lucide="history" class="w-4 h-4"></i>
+                    <span>Riwayat Saya</span>
+                </button>
+            </div>
+
+            <!-- TAB 1: ABSEN MASUK & PULANG (SELFIE & TAP CLICK) -->
+            <section id="guru-sec-cepat" class="space-y-4 animate-fade-in">
+                <!-- Ringkasan Jam Masuk & Pulang Hari Ini -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm">
+                        <div class="flex items-center gap-2 text-emerald-600 mb-1">
+                            <i data-lucide="log-in" class="w-4 h-4"></i>
+                            <span class="text-xs font-bold uppercase tracking-wider">Jam Masuk</span>
+                        </div>
+                        <p id="guru-jam-masuk" class="font-display text-xl font-extrabold text-slate-800">--:--</p>
+                        <p id="guru-metode-masuk" class="text-[11px] text-slate-400 mt-0.5">Belum tercatat</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm">
+                        <div class="flex items-center gap-2 text-amber-600 mb-1">
+                            <i data-lucide="log-out" class="w-4 h-4"></i>
+                            <span class="text-xs font-bold uppercase tracking-wider">Jam Pulang</span>
+                        </div>
+                        <p id="guru-jam-pulang" class="font-display text-xl font-extrabold text-slate-800">--:--</p>
+                        <p id="guru-metode-pulang" class="text-[11px] text-slate-400 mt-0.5">Belum tercatat</p>
+                    </div>
+                </div>
+
+                <!-- Metode 1: Absen Via Selfie (Kamera Langsung) -->
+                <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+                        <div>
+                            <h3 class="font-bold text-sm text-slate-800 flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-indigo-600"></span>
+                                Metode 1: Absen Via Selfie
+                            </h3>
+                            <p class="text-xs text-slate-500">Ambil foto wajah langsung untuk verifikasi kehadiran</p>
+                        </div>
+                        <button type="button" id="btn-start-cam-daily" onclick="startCamera('daily')" class="px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition">
+                            <i data-lucide="video" class="w-3.5 h-3.5"></i>
+                            <span>Buka Kamera</span>
+                        </button>
+                    </div>
+
+                    <div class="p-4 space-y-3">
+                        <!-- Area Kamera / Preview -->
+                        <div class="relative w-full aspect-[4/3] max-h-72 bg-slate-900 rounded-xl overflow-hidden flex items-center justify-center border border-slate-200">
+                            <video id="video-daily" autoplay playsinline class="hidden w-full h-full object-cover mirror-video"></video>
+                            <img id="preview-daily" alt="Hasil Selfie" class="hidden w-full h-full object-cover">
+                            <canvas id="canvas-daily" class="hidden"></canvas>
+                            
+                            <div id="placeholder-daily" class="text-center p-4 text-slate-400">
+                                <i data-lucide="camera-off" class="w-10 h-10 mx-auto mb-2 opacity-60"></i>
+                                <p class="text-xs font-medium">Kamera belum aktif</p>
+                                <p class="text-[11px] mt-1">Klik "Buka Kamera" atau unggah foto dari galeri HP</p>
+                            </div>
+                        </div>
+
+                        <!-- Kontrol Kamera & Upload Fallback -->
+                        <div class="flex flex-wrap items-center justify-center gap-2">
+                            <button type="button" id="btn-capture-daily" onclick="capturePhoto('daily')" class="hidden px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                                <i data-lucide="aperture" class="w-4 h-4"></i>
+                                <span>Jepret Foto</span>
+                            </button>
+                            <button type="button" id="btn-retake-daily" onclick="retakePhoto('daily')" class="hidden px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5">
+                                <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                                <span>Foto Ulang</span>
+                            </button>
+                            <label class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition">
+                                <i data-lucide="upload" class="w-4 h-4"></i>
+                                <span>Pilih File Foto</span>
+                                <input type="file" accept="image/*" capture="user" onchange="handleFileUpload(event, 'daily')" class="hidden">
+                            </label>
+                        </div>
+
+                        <!-- Tombol Submit Selfie Masuk / Pulang -->
+                        <div class="grid grid-cols-2 gap-3 pt-2">
+                            <button type="button" onclick="submitDailyAttendance('Masuk', 'Selfie')" class="py-3 px-4 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold rounded-xl text-xs sm:text-sm shadow-md shadow-emerald-100 flex items-center justify-center gap-2 transition">
+                                <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                                <span>Absen Masuk (Selfie)</span>
+                            </button>
+                            <button type="button" onclick="submitDailyAttendance('Pulang', 'Selfie')" class="py-3 px-4 bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-white font-bold rounded-xl text-xs sm:text-sm shadow-md shadow-amber-100 flex items-center justify-center gap-2 transition">
+                                <i data-lucide="log-out" class="w-4 h-4"></i>
+                                <span>Absen Pulang (Selfie)</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Metode 2: Absen Cepat Tap Click (Tanpa Foto) -->
+                <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4">
+                    <div class="mb-3">
+                        <h3 class="font-bold text-sm text-slate-800 flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-sky-500"></span>
+                            Metode 2: Absen Cepat (Tap Click)
+                        </h3>
+                        <p class="text-xs text-slate-500">Presensi instan satu kali ketuk tanpa mengambil foto</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button type="button" onclick="submitDailyAttendance('Masuk', 'Tap Click')" class="py-3.5 px-4 bg-sky-50 hover:bg-sky-100 border border-sky-200 text-sky-700 font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 transition active:scale-[0.98]">
+                            <i data-lucide="mouse-pointer-click" class="w-4 h-4"></i>
+                            <span>Tap Masuk</span>
+                        </button>
+                        <button type="button" onclick="submitDailyAttendance('Pulang', 'Tap Click')" class="py-3.5 px-4 bg-orange-50 hover:bg-orange-100 border border-orange-200 text-orange-700 font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 transition active:scale-[0.98]">
+                            <i data-lucide="mouse-pointer-click" class="w-4 h-4"></i>
+                            <span>Tap Pulang</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: INPUT ABSEN MANUAL (WAJIB SELFIE & STATUS HADIR/IZIN/CUTI/ALPA) -->
+            <section id="guru-sec-manual" class="hidden space-y-4 animate-fade-in">
+                <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 sm:p-6">
+                    <div class="mb-4">
+                        <h3 class="font-bold text-base text-slate-800">Input Absen Manual & Ketidakhadiran</h3>
+                        <p class="text-xs text-slate-500 mt-0.5">Gunakan formulir ini untuk melaporkan kehadiran khusus, Izin, Cuti, atau Alpa. <strong>Wajib melampirkan foto selfie bukti.</strong></p>
+                    </div>
+
+                    <form id="manual-attendance-form" class="space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Tanggal Absensi</label>
+                                <input type="date" id="manual-date" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Status Keterangan</label>
+                                <select id="manual-status" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <option value="Hadir">Hadir (Tugas Luar / Manual)</option>
+                                    <option value="Izin">Izin (Sakit / Keperluan Penting)</option>
+                                    <option value="Cuti">Cuti (Cuti Tahunan / Melahirkan)</option>
+                                    <option value="Alpa">Alpa (Tanpa Keterangan)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1.5">Alasan / Catatan Keterangan</label>
+                            <textarea id="manual-notes" rows="2" required placeholder="Tuliskan keterangan singkat (contoh: Mengikuti pelatihan dinas di luar sekolah / Izin sakit demam)..."
+                                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                        </div>
+
+                        <!-- Kamera Wajib Selfie untuk Absen Manual -->
+                        <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                                    <i data-lucide="camera" class="w-4 h-4 text-indigo-600"></i>
+                                    Bukti Foto Selfie <span class="text-rose-500">*Wajib</span>
+                                </span>
+                                <button type="button" id="btn-start-cam-manual" onclick="startCamera('manual')" class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 transition">
+                                    Aktifkan Kamera
+                                </button>
+                            </div>
+
+                            <div class="relative w-full aspect-[4/3] max-h-64 bg-slate-900 rounded-xl overflow-hidden flex items-center justify-center">
+                                <video id="video-manual" autoplay playsinline class="hidden w-full h-full object-cover mirror-video"></video>
+                                <img id="preview-manual" alt="Bukti Selfie Manual" class="hidden w-full h-full object-cover">
+                                <canvas id="canvas-manual" class="hidden"></canvas>
+                                <div id="placeholder-manual" class="text-center p-4 text-slate-400">
+                                    <i data-lucide="user-check" class="w-9 h-9 mx-auto mb-1.5 opacity-60"></i>
+                                    <p class="text-xs">Ambil foto selfie sebagai bukti absen manual</p>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-wrap items-center justify-center gap-2">
+                                <button type="button" id="btn-capture-manual" onclick="capturePhoto('manual')" class="hidden px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5">
+                                    <i data-lucide="aperture" class="w-4 h-4"></i>
+                                    <span>Ambil Foto Bukti</span>
+                                </button>
+                                <button type="button" id="btn-retake-manual" onclick="retakePhoto('manual')" class="hidden px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1.5">
+                                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                                    <span>Ulangi Foto</span>
+                                </button>
+                                <label class="px-4 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer">
+                                    <i data-lucide="image-plus" class="w-4 h-4"></i>
+                                    <span>Unggah Foto</span>
+                                    <input type="file" accept="image/*" capture="user" onchange="handleFileUpload(event, 'manual')" class="hidden">
+                                </label>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-md shadow-indigo-100 text-sm flex items-center justify-center gap-2 transition">
+                            <i data-lucide="send" class="w-4 h-4"></i>
+                            <span>Kirim Data Absen Manual</span>
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- TAB 3: RIWAYAT ABSENSI PRIBADI GURU -->
+            <section id="guru-sec-riwayat" class="hidden space-y-3 animate-fade-in">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-bold text-sm text-slate-800">Riwayat Presensi Saya</h3>
+                    <span id="guru-history-count" class="text-xs font-semibold text-slate-500">0 Catatan</span>
+                </div>
+                <div id="guru-history-list" class="space-y-3">
+                    <!-- Diisi via JS -->
+                </div>
+            </section>
+        </main>
+
+        <!-- ==================== DASHBOARD KHUSUS ADMIN ==================== -->
+        <main id="admin-dashboard" class="hidden flex-1 p-4 space-y-5 pb-20">
+            
+            <!-- Navigasi Tab Admin -->
+            <div class="grid grid-cols-2 gap-2 bg-slate-200/70 p-1.5 rounded-2xl">
+                <button onclick="switchAdminTab('rekap')" id="tab-admin-rekap" class="py-2.5 px-3 rounded-xl text-xs font-bold transition bg-white text-indigo-600 shadow-sm flex items-center justify-center gap-2">
+                    <i data-lucide="clipboard-list" class="w-4 h-4"></i>
+                    <span>Rekap Absensi Guru</span>
+                </button>
+                <button onclick="switchAdminTab('users')" id="tab-admin-users" class="py-2.5 px-3 rounded-xl text-xs font-bold transition text-slate-600 hover:text-slate-900 flex items-center justify-center gap-2">
+                    <i data-lucide="users" class="w-4 h-4"></i>
+                    <span>Kelola Pengguna & Sandi</span>
+                </button>
+            </div>
+
+            <!-- TAB ADMIN 1: REKAPITULASI ABSENSI -->
+            <section id="admin-sec-rekap" class="space-y-4 animate-fade-in">
+                <!-- Kartu Statistik Hari Ini -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div class="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-sm">
+                        <p class="text-[11px] font-semibold text-slate-500">Total Akun Guru</p>
+                        <p id="stat-total-guru" class="font-display text-2xl font-extrabold text-slate-800 mt-1">0</p>
+                    </div>
+                    <div class="bg-white p-3.5 rounded-2xl border border-emerald-200/80 shadow-sm">
+                        <p class="text-[11px] font-semibold text-emerald-600">Hadir Hari Ini</p>
+                        <p id="stat-hadir" class="font-display text-2xl font-extrabold text-emerald-600 mt-1">0</p>
+                    </div>
+                    <div class="bg-white p-3.5 rounded-2xl border border-amber-200/80 shadow-sm">
+                        <p class="text-[11px] font-semibold text-amber-600">Izin / Cuti</p>
+                        <p id="stat-izin" class="font-display text-2xl font-extrabold text-amber-600 mt-1">0</p>
+                    </div>
+                    <div class="bg-white p-3.5 rounded-2xl border border-rose-200/80 shadow-sm">
+                        <p class="text-[11px] font-semibold text-rose-600">Alpa</p>
+                        <p id="stat-alpa" class="font-display text-2xl font-extrabold text-rose-600 mt-1">0</p>
+                    </div>
+                </div>
+
+                <!-- Filter Tanggal & Pencarian -->
+                <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row gap-3 justify-between items-center">
+                    <div class="w-full sm:w-auto flex items-center gap-2">
+                        <label class="text-xs font-semibold text-slate-600 whitespace-nowrap">Filter Tanggal:</label>
+                        <input type="date" id="admin-filter-date" onchange="renderAdminAttendance()" class="w-full sm:w-auto px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold">
+                        <button onclick="resetDateFilter()" class="px-2.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-semibold">Semua</button>
+                    </div>
+                    <div class="w-full sm:w-64 relative">
+                        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                        <input type="text" id="admin-search-att" oninput="renderAdminAttendance()" placeholder="Cari nama guru..." class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+                    </div>
+                </div>
+
+                <!-- Tabel / Daftar Rekap Absensi -->
+                <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase text-slate-500">
+                                    <th class="py-3 px-4">Guru</th>
+                                    <th class="py-3 px-3">Tanggal</th>
+                                    <th class="py-3 px-3">Masuk / Pulang</th>
+                                    <th class="py-3 px-3">Status</th>
+                                    <th class="py-3 px-3">Metode & Bukti</th>
+                                    <th class="py-3 px-4 text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-attendance-tbody" class="divide-y divide-slate-100 text-xs">
+                                <!-- Diisi via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB ADMIN 2: MANAJEMEN PENGGUNA (SINGLE, BULK, LIHAT & GANTI PASSWORD) -->
+            <section id="admin-sec-users" class="hidden space-y-5 animate-fade-in">
+                
+                <!-- Sub-Menu Tambah Pengguna: 1 Pengguna vs Banyak Pengguna -->
+                <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                    <div class="border-b border-slate-100 px-4 pt-4 flex gap-4">
+                        <button type="button" onclick="switchAddUserMode('single')" id="btn-mode-single" class="pb-3 text-xs font-bold border-b-2 border-indigo-600 text-indigo-600">
+                            + Tambah 1 Pengguna
+                        </button>
+                        <button type="button" onclick="switchAddUserMode('bulk')" id="btn-mode-bulk" class="pb-3 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700">
+                            ++ Tambah Banyak Pengguna (Sekaligus)
+                        </button>
+                    </div>
+
+                    <!-- Form Tambah 1 Pengguna -->
+                    <form id="single-user-form" class="p-4 sm:p-5 space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap & Gelar</label>
+                                <input type="text" id="new-user-name" required placeholder="Contoh: Siti Aminah, S.Pd" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">NIP / ID Pegawai</label>
+                                <input type="text" id="new-user-nip" required placeholder="Contoh: 199002152015032002" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Username Login</label>
+                                <input type="text" id="new-user-username" required placeholder="Contoh: sitiaminah" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Password</label>
+                                <input type="text" id="new-user-password" required placeholder="Buat kata sandi" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 outline-none">
+                            </div>
+                        </div>
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                            <div class="flex items-center gap-3">
+                                <label class="text-xs font-semibold text-slate-700">Hak Akses (Role):</label>
+                                <select id="new-user-role" class="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700">
+                                    <option value="user">User (Guru)</option>
+                                    <option value="admin">Admin (Operator Sekolah)</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs shadow-sm transition flex items-center justify-center gap-1.5">
+                                <i data-lucide="user-plus" class="w-4 h-4"></i>
+                                <span>Simpan Pengguna</span>
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Form Tambah Banyak Pengguna (Bulk Add) -->
+                    <form id="bulk-user-form" class="hidden p-4 sm:p-5 space-y-4">
+                        <div class="bg-indigo-50/70 border border-indigo-100 rounded-xl p-3 text-xs text-indigo-900 space-y-1">
+                            <p class="font-bold">Panduan Input Massal (1 baris untuk 1 pengguna):</p>
+                            <p class="text-[11px] text-indigo-700">Format: <code class="bg-white px-1.5 py-0.5 rounded border border-indigo-200 font-mono">Nama Lengkap, NIP, Username, Password, Role(admin/user)</code></p>
+                            <p class="text-[11px] text-indigo-600">Jika kolom Role dikosongkan, otomatis mengikuti pilihan Role Default di bawah.</p>
+                        </div>
+
+                        <div>
+                            <textarea id="bulk-user-input" rows="5" required placeholder="Contoh:
+Ahmad Fauzi S.Pd, 198801012014021001, ahmad, sandi123, user
+Dewi Lestari M.Pd, 199105122018012004, dewi, sandi123, user
+Operator TU, 199503032020011005, tu_admin, admin999, admin"
+                                class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:ring-2 focus:ring-indigo-500 outline-none"></textarea>
+                        </div>
+
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="flex items-center gap-2">
+                                <label class="text-xs font-semibold text-slate-700">Role Default (jika tidak ditulis):</label>
+                                <select id="bulk-default-role" class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold">
+                                    <option value="user">User (Guru)</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs shadow-sm transition flex items-center justify-center gap-1.5">
+                                <i data-lucide="users" class="w-4 h-4"></i>
+                                <span>Proses Tambah Banyak</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Daftar Semua Pengguna (Menampilkan Password & Aksi Ubah Sandi) -->
+                <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                            <h3 class="font-bold text-sm text-slate-800">Daftar Akun Pengguna & Kata Sandi</h3>
+                            <p class="text-[11px] text-slate-500">Admin dapat melihat kata sandi pengguna serta mengubah sandi diri sendiri maupun guru.</p>
+                        </div>
+                        <input type="text" id="admin-search-user" oninput="renderUsersTable()" placeholder="Cari nama / username..." class="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs w-full sm:w-56">
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase text-slate-500">
+                                    <th class="py-3 px-4">Nama & NIP</th>
+                                    <th class="py-3 px-3">Username</th>
+                                    <th class="py-3 px-3">Password Pengguna</th>
+                                    <th class="py-3 px-3">Role</th>
+                                    <th class="py-3 px-4 text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-users-tbody" class="divide-y divide-slate-100 text-xs">
+                                <!-- Diisi via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- ==================== MODAL 1: GANTI PASSWORD (ADMIN & USER) ==================== -->
+    <div id="password-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl animate-fade-in">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-bold text-base text-slate-800" id="modal-pwd-title">Ubah Kata Sandi</h3>
+                <button onclick="closeModal('password-modal')" class="p-1 text-slate-400 hover:text-slate-600 rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form id="change-password-form" class="space-y-4">
+                <input type="hidden" id="modal-pwd-username">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Akun Target</label>
+                    <input type="text" id="modal-pwd-display" disabled class="w-full px-3.5 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-700">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Kata Sandi Baru</label>
+                    <input type="text" id="modal-pwd-new" required minlength="4" placeholder="Masukkan kata sandi baru" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('password-modal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold">Batal</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL 2: PREVIEW FOTO SELFIE ==================== -->
+    <div id="photo-modal" class="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm hidden items-center justify-center p-4" onclick="closeModal('photo-modal')">
+        <div class="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl animate-fade-in" onclick="event.stopPropagation()">
+            <div class="p-3.5 border-b border-slate-100 flex items-center justify-between">
+                <h4 id="photo-modal-title" class="font-bold text-xs text-slate-800">Bukti Foto Selfie</h4>
+                <button onclick="closeModal('photo-modal')" class="p-1 text-slate-400 hover:text-slate-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="bg-slate-950 flex items-center justify-center">
+                <img id="photo-modal-img" src="" alt="Selfie Guru" class="max-h-[70vh] w-auto object-contain">
+            </div>
+            <div id="photo-modal-caption" class="p-3.5 text-xs text-slate-600 bg-slate-50"></div>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL 3: WIZARD PENGATURAN DATABASE CLOUD (FIREBASE) ==================== -->
+    <div id="cloud-modal" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm hidden items-center justify-center p-4" onclick="closeModal('cloud-modal')">
+        <div class="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl animate-fade-in max-h-[90vh] flex flex-col" onclick="event.stopPropagation()">
+            <div class="bg-gradient-to-r from-indigo-600 to-blue-700 px-5 py-4 text-white flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
+                        <i data-lucide="cloud-cog" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-display font-bold text-sm sm:text-base">Sinkronisasi Cloud Real-Time</h3>
+                        <p class="text-[11px] text-indigo-100">Hubungkan semua HP guru ke 1 database terpusat</p>
+                    </div>
+                </div>
+                <button onclick="closeModal('cloud-modal')" class="p-1.5 text-white/80 hover:text-white rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="p-5 overflow-y-auto space-y-4 text-xs">
+                <!-- Status Koneksi Saat Ini -->
+                <div id="cloud-status-banner" class="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex items-start gap-2.5">
+                    <i data-lucide="hard-drive" class="w-4 h-4 text-amber-600 shrink-0 mt-0.5"></i>
+                    <div>
+                        <p class="font-bold">Saat ini menggunakan Penyimpanan Lokal (Offline HP)</p>
+                        <p class="text-[11px] text-amber-700 mt-0.5">Data hanya tersimpan di browser perangkat ini. Masukkan URL Firebase Realtime Database di bawah agar data guru & absensi tersinkronisasi otomatis ke semua perangkat.</p>
+                    </div>
+                </div>
+
+                <!-- Langkah Panduan Singkat -->
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-1.5">
+                    <p class="font-bold text-slate-800 flex items-center gap-1.5">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-indigo-600"></i>
+                        Cara Mendapatkan URL Firebase Gratis (2 Menit):
+                    </p>
+                    <ol class="list-decimal list-inside text-[11px] text-slate-600 space-y-1 leading-relaxed">
+                        <li>Buka <strong>console.firebase.google.com</strong> &rarr; Buat Project baru.</li>
+                        <li>Pilih menu <strong>Build &rarr; Realtime Database &rarr; Create Database</strong>.</li>
+                        <li>Pilih <strong>Start in test mode</strong> lalu klik <strong>Enable</strong>.</li>
+                        <li>Salin <strong>URL Database</strong> (contoh: <code class="bg-white px-1 py-0.5 rounded border text-indigo-600">https://nama-project.firebaseio.com</code>) dan tempel di bawah.</li>
+                    </ol>
+                </div>
+
+                <!-- Input URL Firebase -->
+                <div class="space-y-2">
+                    <label class="block font-bold text-slate-700">URL Firebase Realtime Database</label>
+                    <input type="url" id="cloud-url-input" placeholder="https://contoh-absensi-default-rtdb.firebaseio.com"
+                        class="w-full px-3.5 py-3 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none">
+                    <div class="flex flex-wrap gap-2 pt-1">
+                        <button type="button" onclick="testCloudConnection()" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl flex items-center gap-1.5 transition">
+                            <i data-lucide="wifi" class="w-3.5 h-3.5"></i>
+                            <span>Tes Koneksi</span>
+                        </button>
+                        <button type="button" onclick="saveCloudConfig()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl flex items-center gap-1.5 shadow-sm transition">
+                            <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                            <span>Simpan & Aktifkan Cloud</span>
+                        </button>
+                        <button type="button" id="btn-disconnect-cloud" onclick="disconnectCloud()" class="hidden px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold rounded-xl flex items-center gap-1.5 transition">
+                            <i data-lucide="unplug" class="w-3.5 h-3.5"></i>
+                            <span>Putuskan</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Aksi Sinkronisasi Data -->
+                <div class="pt-3 border-t border-slate-200 space-y-2.5">
+                    <p class="font-bold text-slate-800">Alat Sinkronisasi & Cadangan Data:</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <button type="button" onclick="pushLocalToCloud()" class="p-2.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 rounded-xl font-semibold text-left flex items-center gap-2 transition">
+                            <i data-lucide="cloud-upload" class="w-4 h-4 shrink-0 text-emerald-600"></i>
+                            <div>
+                                <p class="text-[11px] font-bold">Unggah Data Lokal ke Cloud</p>
+                                <p class="text-[10px] text-emerald-600">Kirim akun default/lokal ke Firebase</p>
+                            </div>
+                        </button>
+                        <button type="button" onclick="pullCloudToLocal(true)" class="p-2.5 bg-sky-50 hover:bg-sky-100 border border-sky-200 text-sky-800 rounded-xl font-semibold text-left flex items-center gap-2 transition">
+                            <i data-lucide="cloud-download" class="w-4 h-4 shrink-0 text-sky-600"></i>
+                            <div>
+                                <p class="text-[11px] font-bold">Tarik Data Terbaru Cloud</p>
+                                <p class="text-[10px] text-sky-600">Segarkan data dari server sekarang</p>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SCRIPT LOGIKA APLIKASI ==================== -->
+    <script>
+        // --- 1. INISIALISASI DATA, LOCALSTORAGE & FIREBASE CLOUD SYNC ---
+        const STORAGE_USERS_KEY = 'siabsen_guru_users_v1';
+        const STORAGE_ATT_KEY = 'siabsen_guru_attendance_v1';
+        const STORAGE_SESSION_KEY = 'siabsen_guru_session_v1';
+        const STORAGE_CLOUD_URL_KEY = 'siabsen_guru_firebase_url_v1';
+
+        let cloudSyncTimer = null;
+        let isSyncing = false;
+
+        function getCloudUrl() {
+            const url = localStorage.getItem(STORAGE_CLOUD_URL_KEY);
+            return url ? url.replace(/\/+$/, '') : '';
+        }
+
+        function updateCloudStatusUI() {
+            const url = getCloudUrl();
+            const isConnected = Boolean(url);
+
+            // Update indikator di halaman Login
+            const loginDot = document.getElementById('login-cloud-dot');
+            const loginLabel = document.getElementById('login-cloud-label');
+            if (loginDot && loginLabel) {
+                loginDot.className = isConnected ? 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse' : 'w-2 h-2 rounded-full bg-amber-400';
+                loginLabel.textContent = isConnected ? 'Cloud Aktif' : 'Mode Lokal';
+            }
+
+            // Update indikator di Header Dashboard
+            const headerDot = document.getElementById('header-cloud-dot');
+            const headerLabel = document.getElementById('header-cloud-label');
+            if (headerDot && headerLabel) {
+                headerDot.className = isConnected ? 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse' : 'w-2 h-2 rounded-full bg-amber-500';
+                headerLabel.textContent = isConnected ? 'Cloud' : 'Lokal';
+            }
+
+            // Update banner di dalam Modal Pengaturan Cloud
+            const banner = document.getElementById('cloud-status-banner');
+            const btnDisconnect = document.getElementById('btn-disconnect-cloud');
+            if (banner) {
+                if (isConnected) {
+                    banner.className = 'p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-start gap-2.5';
+                    banner.innerHTML = `
+                        <i data-lucide="cloud-check" class="w-4 h-4 text-emerald-600 shrink-0 mt-0.5"></i>
+                        <div class="break-all">
+                            <p class="font-bold">Terhubung ke Cloud Real-Time</p>
+                            <p class="text-[11px] text-emerald-700 mt-0.5 font-mono">${url}</p>
+                        </div>`;
+                    if (btnDisconnect) btnDisconnect.classList.remove('hidden');
+                } else {
+                    banner.className = 'p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex items-start gap-2.5';
+                    banner.innerHTML = `
+                        <i data-lucide="hard-drive" class="w-4 h-4 text-amber-600 shrink-0 mt-0.5"></i>
+                        <div>
+                            <p class="font-bold">Saat ini menggunakan Penyimpanan Lokal (Offline HP)</p>
+                            <p class="text-[11px] text-amber-700 mt-0.5">Masukkan URL Firebase Realtime Database di bawah agar data guru & absensi tersinkronisasi otomatis ke semua perangkat.</p>
+                        </div>`;
+                    if (btnDisconnect) btnDisconnect.classList.add('hidden');
+                }
+                lucide.createIcons();
+            }
+        }
+
+        // Data awal default jika baru pertama kali dibuka
+        const defaultUsers = [
+            {
+                id: 'u-1',
+                name: 'Administrator Sekolah',
+                nip: '198001012005011001',
+                username: 'admin',
+                password: 'admin123',
+                role: 'admin'
+            },
+            {
+                id: 'u-2',
+                name: 'Budi Santoso, S.Pd',
+                nip: '198501012010011001',
+                username: 'guru1',
+                password: 'guru123',
+                role: 'user'
+            },
+            {
+                id: 'u-3',
+                name: 'Rina Marlina, M.Pd',
+                nip: '198907142014032003',
+                username: 'guru2',
+                password: 'guru123',
+                role: 'user'
+            }
+        ];
+
+        function getUsers() {
+            const raw = localStorage.getItem(STORAGE_USERS_KEY);
+            if (!raw) {
+                localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(defaultUsers));
+                return defaultUsers;
+            }
+            return JSON.parse(raw);
+        }
+
+        function saveUsers(users) {
+            localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users));
+            syncNodeToCloud('users', users);
+        }
+
+        function getAttendances() {
+            const raw = localStorage.getItem(STORAGE_ATT_KEY);
+            return raw ? JSON.parse(raw) : [];
+        }
+
+        function saveAttendances(records) {
+            try {
+                localStorage.setItem(STORAGE_ATT_KEY, JSON.stringify(records));
+                syncNodeToCloud('attendances', records);
+            } catch (e) {
+                showToast('Penyimpanan penuh! Hapus beberapa riwayat lama.', 'error');
+            }
+        }
+
+        // --- FUNGSI SINKRONISASI FIREBASE REST API ---
+        async function syncNodeToCloud(nodeName, dataArray) {
+            const baseUrl = getCloudUrl();
+            if (!baseUrl) return;
+            try {
+                await fetch(`${baseUrl}/siabsen/${nodeName}.json`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dataArray)
+                });
+            } catch (err) {
+                console.warn('Gagal mengirim ke cloud:', err);
+            }
+        }
+
+        async function pullCloudToLocal(notify = false) {
+            const baseUrl = getCloudUrl();
+            if (!baseUrl || isSyncing) return;
+            isSyncing = true;
+            try {
+                const res = await fetch(`${baseUrl}/siabsen.json`);
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const cloudData = await res.json();
+
+                let updated = false;
+                if (cloudData && Array.isArray(cloudData.users) && cloudData.users.length > 0) {
+                    const prevUsers = localStorage.getItem(STORAGE_USERS_KEY);
+                    const nextUsers = JSON.stringify(cloudData.users);
+                    if (prevUsers !== nextUsers) {
+                        localStorage.setItem(STORAGE_USERS_KEY, nextUsers);
+                        updated = true;
+                    }
+                } else if (!cloudData || !cloudData.users) {
+                    // Jika cloud masih kosong, unggah akun default ke cloud secara otomatis
+                    await syncNodeToCloud('users', getUsers());
+                }
+
+                if (cloudData && Array.isArray(cloudData.attendances)) {
+                    const prevAtt = localStorage.getItem(STORAGE_ATT_KEY);
+                    const nextAtt = JSON.stringify(cloudData.attendances);
+                    if (prevAtt !== nextAtt) {
+                        localStorage.setItem(STORAGE_ATT_KEY, nextAtt);
+                        updated = true;
+                    }
+                }
+
+                if (updated && currentUser) {
+                    if (currentUser.role === 'admin') {
+                        renderAdminDashboard();
+                        if (!document.getElementById('admin-sec-users').classList.contains('hidden')) {
+                            renderUsersTable();
+                        }
+                    } else {
+                        renderGuruDashboard();
+                    }
+                }
+
+                if (notify) showToast('Data berhasil disinkronkan dengan server Cloud!', 'success');
+            } catch (err) {
+                if (notify) showToast('Gagal terhubung ke Firebase. Periksa URL & aturan Test Mode.', 'error');
+            } finally {
+                isSyncing = false;
+            }
+        }
+
+        function startCloudPolling() {
+            if (cloudSyncTimer) clearInterval(cloudSyncTimer);
+            if (!getCloudUrl()) return;
+            pullCloudToLocal(false);
+            cloudSyncTimer = setInterval(() => {
+                pullCloudToLocal(false);
+            }, 6000); // Sinkronisasi otomatis setiap 6 detik
+        }
+
+        function openCloudSetupModal() {
+            document.getElementById('cloud-url-input').value = getCloudUrl();
+            updateCloudStatusUI();
+            const modal = document.getElementById('cloud-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            lucide.createIcons();
+        }
+
+        async function testCloudConnection() {
+            const rawUrl = document.getElementById('cloud-url-input').value.trim().replace(/\/+$/, '');
+            if (!rawUrl || !rawUrl.startsWith('https://')) {
+                showToast('Masukkan URL Firebase yang valid (diawali https://)', 'error');
+                return;
+            }
+            try {
+                showToast('Menguji koneksi ke Firebase...', 'info');
+                const res = await fetch(`${rawUrl}/siabsen_ping.json`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ok: true, time: Date.now() })
+                });
+                if (!res.ok) throw new Error('Status ' + res.status);
+                showToast('Koneksi berhasil! Klik "Simpan & Aktifkan Cloud".', 'success');
+            } catch (e) {
+                showToast('Koneksi gagal! Pastikan Realtime Database aktif dalam "Test Mode".', 'error');
+            }
+        }
+
+        async function saveCloudConfig() {
+            const rawUrl = document.getElementById('cloud-url-input').value.trim().replace(/\/+$/, '');
+            if (!rawUrl || !rawUrl.startsWith('https://')) {
+                showToast('Masukkan URL Firebase yang valid terlebih dahulu.', 'error');
+                return;
+            }
+            localStorage.setItem(STORAGE_CLOUD_URL_KEY, rawUrl);
+            updateCloudStatusUI();
+            showToast('Mode Cloud diaktifkan! Menyinkronkan data...', 'success');
+            await pullCloudToLocal(true);
+            startCloudPolling();
+            closeModal('cloud-modal');
+        }
+
+        function disconnectCloud() {
+            localStorage.removeItem(STORAGE_CLOUD_URL_KEY);
+            if (cloudSyncTimer) clearInterval(cloudSyncTimer);
+            document.getElementById('cloud-url-input').value = '';
+            updateCloudStatusUI();
+            showToast('Koneksi Cloud diputuskan. Kembali ke penyimpanan lokal.', 'info');
+        }
+
+        async function pushLocalToCloud() {
+            if (!getCloudUrl()) {
+                showToast('Simpan URL Firebase terlebih dahulu sebelum mengunggah data.', 'error');
+                return;
+            }
+            showToast('Mengunggah data pengguna & absensi ke Cloud...', 'info');
+            await syncNodeToCloud('users', getUsers());
+            await syncNodeToCloud('attendances', getAttendances());
+            showToast('Seluruh data lokal berhasil diunggah ke Cloud!', 'success');
+        }
+
+        let currentUser = null;
+        let activeStreams = { daily: null, manual: null };
+        let capturedPhotos = { daily: null, manual: null };
+
+        // --- 2. SISTEM NOTIFIKASI TOAST ---
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const colors = {
+                success: 'bg-emerald-600 text-white shadow-emerald-900/20',
+                error: 'bg-rose-600 text-white shadow-rose-900/20',
+                info: 'bg-indigo-600 text-white shadow-indigo-900/20'
+            };
+            const icons = {
+                success: 'check-circle',
+                error: 'alert-circle',
+                info: 'info'
+            };
+
+            toast.className = `${colors[type]} px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 text-xs font-semibold pointer-events-auto animate-fade-in`;
+            toast.innerHTML = `<i data-lucide="${icons[type]}" class="w-4 h-4 shrink-0"></i><span>${message}</span>`;
+            container.appendChild(toast);
+            lucide.createIcons();
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-6px)';
+                toast.style.transition = 'all 0.25s ease';
+                setTimeout(() => toast.remove(), 250);
+            }, 3200);
+        }
+
+        // --- 3. WAKTU & TANGGAL REALTIME ---
+        function getTodayISO() {
+            const now = new Date();
+            const offset = now.getTimezoneOffset() * 60000;
+            return new Date(now.getTime() - offset).toISOString().split('T')[0];
+        }
+
+        function formatIndoDate(isoDateStr) {
+            if (!isoDateStr) return '-';
+            const [y, m, d] = isoDateStr.split('-');
+            const bulan = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+            return `${d} ${bulan[parseInt(m, 10) - 1]} ${y}`;
+        }
+
+        function startRealtimeClock() {
+            const hariList = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+            const bulanList = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+            function update() {
+                const now = new Date();
+                const hari = hariList[now.getDay()];
+                const tanggal = now.getDate();
+                const bulan = bulanList[now.getMonth()];
+                const tahun = now.getFullYear();
+
+                const jam = String(now.getHours()).padStart(2, '0');
+                const menit = String(now.getMinutes()).padStart(2, '0');
+                const detik = String(now.getSeconds()).padStart(2, '0');
+
+                const dateEl = document.getElementById('realtime-date');
+                const clockEl = document.getElementById('realtime-clock');
+                if (dateEl) dateEl.textContent = `${hari}, ${tanggal} ${bulan} ${tahun}`;
+                if (clockEl) clockEl.textContent = `${jam}:${menit}:${detik}`;
+            }
+            update();
+            setInterval(update, 1000);
+        }
+
+        // --- 4. AUTENTIKASI (LOGIN, LOGOUT, LUPA SANDI) ---
+        function fillDemoLogin(user, pass) {
+            document.getElementById('login-username').value = user;
+            document.getElementById('login-password').value = pass;
+            showToast(`Akun demo "${user}" diisi. Klik Masuk Sekarang.`, 'info');
+        }
+
+        function togglePasswordVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                btn.innerHTML = '<i data-lucide="eye-off" class="w-4 h-4"></i>';
+            } else {
+                input.type = 'password';
+                btn.innerHTML = '<i data-lucide="eye" class="w-4 h-4"></i>';
+            }
+            lucide.createIcons();
+        }
+
+        function toggleForgotView(showForgot) {
+            document.getElementById('login-box').classList.toggle('hidden', showForgot);
+            document.getElementById('forgot-box').classList.toggle('hidden', !showForgot);
+        }
+
+        document.getElementById('login-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('login-username').value.trim();
+            const password = document.getElementById('login-password').value;
+
+            // Tarik data pengguna terbaru dari cloud jika terhubung sebelum memvalidasi login
+            if (getCloudUrl()) {
+                await pullCloudToLocal(false);
+            }
+
+            const users = getUsers();
+            const found = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
+
+            if (!found) {
+                showToast('Username atau kata sandi salah!', 'error');
+                return;
+            }
+
+            currentUser = found;
+            localStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(found));
+            showToast(`Selamat datang, ${found.name}!`, 'success');
+            initAppView();
+        });
+
+        document.getElementById('forgot-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('forgot-username').value.trim();
+            const nip = document.getElementById('forgot-nip').value.trim();
+            const newPwd = document.getElementById('forgot-new-password').value;
+
+            if (getCloudUrl()) {
+                await pullCloudToLocal(false);
+            }
+
+            const users = getUsers();
+            const idx = users.findIndex(u => u.username.toLowerCase() === username.toLowerCase() && u.nip === nip);
+
+            if (idx === -1) {
+                showToast('Kombinasi Username dan NIP/ID Pegawai tidak cocok!', 'error');
+                return;
+            }
+
+            users[idx].password = newPwd;
+            saveUsers(users);
+            showToast('Kata sandi berhasil diperbarui! Silakan login.', 'success');
+            document.getElementById('forgot-form').reset();
+            toggleForgotView(false);
+            document.getElementById('login-username').value = username;
+        });
+
+        function logout() {
+            stopCamera('daily');
+            stopCamera('manual');
+            currentUser = null;
+            localStorage.removeItem(STORAGE_SESSION_KEY);
+            document.getElementById('app-view').classList.add('hidden');
+            document.getElementById('auth-view').classList.remove('hidden');
+            document.getElementById('login-password').value = '';
+            showToast('Anda telah keluar dari sistem.', 'info');
+        }
+
+        // --- 5. INISIALISASI TAMPILAN DASHBOARD ---
+        function initAppView() {
+            // Segarkan data user dari storage agar perubahan password/nama selalu sinkron
+            const users = getUsers();
+            const freshUser = users.find(u => u.id === currentUser.id);
+            if (!freshUser) {
+                logout();
+                return;
+            }
+            currentUser = freshUser;
+
+            document.getElementById('auth-view').classList.add('hidden');
+            document.getElementById('app-view').classList.remove('hidden');
+
+            document.getElementById('header-user-name').textContent = currentUser.name;
+            document.getElementById('header-user-nip').textContent = `NIP/ID: ${currentUser.nip} • @${currentUser.username}`;
+            
+            const roleBadge = document.getElementById('header-user-role');
+            if (currentUser.role === 'admin') {
+                roleBadge.textContent = 'Admin';
+                roleBadge.className = 'px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-amber-100 text-amber-800';
+                document.getElementById('guru-dashboard').classList.add('hidden');
+                document.getElementById('admin-dashboard').classList.remove('hidden');
+                document.getElementById('today-status-badge').textContent = 'Mode Administrator';
+                renderAdminDashboard();
+            } else {
+                roleBadge.textContent = 'Guru';
+                roleBadge.className = 'px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-emerald-100 text-emerald-800';
+                document.getElementById('admin-dashboard').classList.add('hidden');
+                document.getElementById('guru-dashboard').classList.remove('hidden');
+                document.getElementById('manual-date').value = getTodayISO();
+                renderGuruDashboard();
+            }
+            lucide.createIcons();
+        }
+
+        // --- 6. KAMERA & KOMPRESI FOTO SELFIE ---
+        async function startCamera(type) {
+            stopCamera(type);
+            const video = document.getElementById(`video-${type}`);
+            const preview = document.getElementById(`preview-${type}`);
+            const placeholder = document.getElementById(`placeholder-${type}`);
+            const btnCapture = document.getElementById(`btn-capture-${type}`);
+            const btnRetake = document.getElementById(`btn-retake-${type}`);
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+                    audio: false
+                });
+                activeStreams[type] = stream;
+                video.srcObject = stream;
+                video.classList.remove('hidden');
+                preview.classList.add('hidden');
+                placeholder.classList.add('hidden');
+                btnCapture.classList.remove('hidden');
+                btnRetake.classList.add('hidden');
+            } catch (err) {
+                showToast('Kamera tidak dapat diakses. Gunakan tombol "Pilih File Foto" di bawah.', 'error');
+            }
+        }
+
+        function stopCamera(type) {
+            if (activeStreams[type]) {
+                activeStreams[type].getTracks().forEach(track => track.stop());
+                activeStreams[type] = null;
+            }
+        }
+
+        function capturePhoto(type) {
+            const video = document.getElementById(`video-${type}`);
+            const canvas = document.getElementById(`canvas-${type}`);
+            const preview = document.getElementById(`preview-${type}`);
+            const btnCapture = document.getElementById(`btn-capture-${type}`);
+            const btnRetake = document.getElementById(`btn-retake-${type}`);
+
+            if (!video.videoWidth) return;
+
+            // Kompresi ukuran agar ringan di localStorage
+            const maxW = 480;
+            const scale = maxW / video.videoWidth;
+            canvas.width = maxW;
+            canvas.height = video.videoHeight * scale;
+
+            const ctx = canvas.getContext('2d');
+            // Balik horizontal agar hasil sesuai cermin
+            ctx.translate(canvas.width, 0);
+            ctx.scale(-1, 1);
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.72);
+            capturedPhotos[type] = dataUrl;
+
+            preview.src = dataUrl;
+            preview.classList.remove('hidden');
+            video.classList.add('hidden');
+            btnCapture.classList.add('hidden');
+            btnRetake.classList.remove('hidden');
+            stopCamera(type);
+            showToast('Foto selfie berhasil diambil!', 'success');
+        }
+
+        function retakePhoto(type) {
+            capturedPhotos[type] = null;
+            startCamera(type);
+        }
+
+        function handleFileUpload(event, type) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.getElementById(`canvas-${type}`);
+                    const maxW = 480;
+                    const scale = Math.min(1, maxW / img.width);
+                    canvas.width = img.width * scale;
+                    canvas.height = img.height * scale;
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    const compressed = canvas.toDataURL('image/jpeg', 0.72);
+
+                    capturedPhotos[type] = compressed;
+                    stopCamera(type);
+
+                    const preview = document.getElementById(`preview-${type}`);
+                    preview.src = compressed;
+                    preview.classList.remove('hidden');
+                    document.getElementById(`video-${type}`).classList.add('hidden');
+                    document.getElementById(`placeholder-${type}`).classList.add('hidden');
+                    document.getElementById(`btn-capture-${type}`).classList.add('hidden');
+                    document.getElementById(`btn-retake-${type}`).classList.remove('hidden');
+                    showToast('Foto berhasil dilampirkan!', 'success');
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function resetPhotoUI(type) {
+            stopCamera(type);
+            capturedPhotos[type] = null;
+            document.getElementById(`video-${type}`).classList.add('hidden');
+            document.getElementById(`preview-${type}`).classList.add('hidden');
+            document.getElementById(`placeholder-${type}`).classList.remove('hidden');
+            document.getElementById(`btn-capture-${type}`).classList.add('hidden');
+            document.getElementById(`btn-retake-${type}`).classList.add('hidden');
+        }
+
+        // --- 7. LOGIKA ABSENSI GURU ---
+        function switchGuruTab(tab) {
+            ['cepat', 'manual', 'riwayat'].forEach(t => {
+                document.getElementById(`guru-sec-${t}`).classList.toggle('hidden', t !== tab);
+                const btn = document.getElementById(`tab-guru-${t}`);
+                if (t === tab) {
+                    btn.className = 'py-2.5 px-2 rounded-xl text-xs font-bold transition bg-white text-indigo-600 shadow-sm flex items-center justify-center gap-1.5';
+                } else {
+                    btn.className = 'py-2.5 px-2 rounded-xl text-xs font-bold transition text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5';
+                }
+            });
+            if (tab !== 'cepat') stopCamera('daily');
+            if (tab !== 'manual') stopCamera('manual');
+            if (tab === 'riwayat') renderGuruHistory();
+        }
+
+        function submitDailyAttendance(direction, method) {
+            // Validasi foto jika metode Selfie
+            if (method === 'Selfie' && !capturedPhotos.daily) {
+                showToast('Silakan ambil atau unggah foto selfie terlebih dahulu!', 'error');
+                return;
+            }
+
+            const today = getTodayISO();
+            const nowTime = new Date().toTimeString().slice(0, 5); // HH:MM
+            const records = getAttendances();
+            let todayRecord = records.find(r => r.userId === currentUser.id && r.date === today);
+
+            if (direction === 'Masuk') {
+                if (todayRecord && todayRecord.timeIn) {
+                    showToast(`Anda sudah melakukan Absen Masuk hari ini pada pukul ${todayRecord.timeIn}.`, 'info');
+                    return;
+                }
+                if (!todayRecord) {
+                    todayRecord = {
+                        id: 'att-' + Date.now(),
+                        userId: currentUser.id,
+                        userName: currentUser.name,
+                        userNip: currentUser.nip,
+                        date: today,
+                        timeIn: nowTime,
+                        methodIn: method,
+                        photoIn: method === 'Selfie' ? capturedPhotos.daily : null,
+                        timeOut: null,
+                        methodOut: null,
+                        photoOut: null,
+                        status: 'Hadir',
+                        notes: 'Presensi Harian'
+                    };
+                    records.unshift(todayRecord);
+                } else {
+                    todayRecord.timeIn = nowTime;
+                    todayRecord.methodIn = method;
+                    todayRecord.photoIn = method === 'Selfie' ? capturedPhotos.daily : null;
+                    todayRecord.status = 'Hadir';
+                }
+                showToast(`Absen Masuk (${method}) berhasil dicatat pukul ${nowTime}!`, 'success');
+            } else if (direction === 'Pulang') {
+                if (!todayRecord || !todayRecord.timeIn) {
+                    showToast('Anda belum melakukan Absen Masuk hari ini!', 'error');
+                    return;
+                }
+                if (todayRecord.timeOut) {
+                    showToast(`Anda sudah Absen Pulang hari ini pukul ${todayRecord.timeOut}.`, 'info');
+                    return;
+                }
+                todayRecord.timeOut = nowTime;
+                todayRecord.methodOut = method;
+                todayRecord.photoOut = method === 'Selfie' ? capturedPhotos.daily : null;
+                showToast(`Absen Pulang (${method}) berhasil dicatat pukul ${nowTime}!`, 'success');
+            }
+
+            saveAttendances(records);
+            resetPhotoUI('daily');
+            renderGuruDashboard();
+        }
+
+        // Submit Absen Manual (Wajib Selfie)
+        document.getElementById('manual-attendance-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            if (!capturedPhotos.manual) {
+                showToast('Absen manual WAJIB melampirkan foto selfie bukti!', 'error');
+                return;
+            }
+
+            const dateVal = document.getElementById('manual-date').value;
+            const statusVal = document.getElementById('manual-status').value;
+            const notesVal = document.getElementById('manual-notes').value.trim();
+            const nowTime = new Date().toTimeString().slice(0, 5);
+
+            const records = getAttendances();
+            const existingIdx = records.findIndex(r => r.userId === currentUser.id && r.date === dateVal);
+
+            const manualRecord = {
+                id: existingIdx !== -1 ? records[existingIdx].id : 'att-' + Date.now(),
+                userId: currentUser.id,
+                userName: currentUser.name,
+                userNip: currentUser.nip,
+                date: dateVal,
+                timeIn: statusVal === 'Hadir' ? nowTime : '-',
+                methodIn: 'Manual (Selfie)',
+                photoIn: capturedPhotos.manual,
+                timeOut: existingIdx !== -1 ? records[existingIdx].timeOut : '-',
+                methodOut: null,
+                photoOut: null,
+                status: statusVal,
+                notes: notesVal
+            };
+
+            if (existingIdx !== -1) {
+                records[existingIdx] = manualRecord;
+            } else {
+                records.unshift(manualRecord);
+            }
+
+            saveAttendances(records);
+            document.getElementById('manual-notes').value = '';
+            resetPhotoUI('manual');
+            showToast(`Laporan absen manual (${statusVal}) berhasil disimpan!`, 'success');
+            renderGuruDashboard();
+            switchGuruTab('riwayat');
+        });
+
+        function renderGuruDashboard() {
+            const today = getTodayISO();
+            const records = getAttendances();
+            const todayRec = records.find(r => r.userId === currentUser.id && r.date === today);
+
+            const statusBadge = document.getElementById('today-status-badge');
+            const jamMasuk = document.getElementById('guru-jam-masuk');
+            const metMasuk = document.getElementById('guru-metode-masuk');
+            const jamPulang = document.getElementById('guru-jam-pulang');
+            const metPulang = document.getElementById('guru-metode-pulang');
+
+            if (todayRec) {
+                statusBadge.textContent = `${todayRec.status} (${todayRec.timeIn !== '-' ? 'Masuk ' + todayRec.timeIn : todayRec.notes})`;
+                jamMasuk.textContent = todayRec.timeIn || '--:--';
+                metMasuk.textContent = todayRec.methodIn ? `Via ${todayRec.methodIn}` : 'Tercatat';
+                jamPulang.textContent = todayRec.timeOut || '--:--';
+                metPulang.textContent = todayRec.methodOut ? `Via ${todayRec.methodOut}` : (todayRec.status !== 'Hadir' ? todayRec.status : 'Belum pulang');
+            } else {
+                statusBadge.textContent = 'Belum Absen Hari Ini';
+                jamMasuk.textContent = '--:--';
+                metMasuk.textContent = 'Belum tercatat';
+                jamPulang.textContent = '--:--';
+                metPulang.textContent = 'Belum tercatat';
+            }
+
+            renderGuruHistory();
+        }
+
+        function renderGuruHistory() {
+            const records = getAttendances().filter(r => r.userId === currentUser.id);
+            document.getElementById('guru-history-count').textContent = `${records.length} Catatan`;
+            const listEl = document.getElementById('guru-history-list');
+
+            if (records.length === 0) {
+                listEl.innerHTML = `
+                    <div class="bg-white p-8 rounded-2xl border border-slate-200/80 text-center text-slate-400">
+                        <i data-lucide="calendar-x" class="w-10 h-10 mx-auto mb-2 opacity-50"></i>
+                        <p class="text-xs font-medium">Belum ada riwayat presensi yang tercatat.</p>
+                    </div>`;
+                lucide.createIcons();
+                return;
+            }
+
+            listEl.innerHTML = records.map(r => {
+                const badgeColors = {
+                    'Hadir': 'bg-emerald-100 text-emerald-700',
+                    'Izin': 'bg-amber-100 text-amber-700',
+                    'Cuti': 'bg-sky-100 text-sky-700',
+                    'Alpa': 'bg-rose-100 text-rose-700'
+                };
+                const hasPhoto = r.photoIn || r.photoOut;
+                return `
+                <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between gap-3">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-xs text-slate-800">${formatIndoDate(r.date)}</span>
+                            <span class="px-2 py-0.5 text-[10px] font-bold rounded-full ${badgeColors[r.status] || 'bg-slate-100 text-slate-700'}">${r.status}</span>
+                        </div>
+                        <p class="text-[11px] text-slate-500">
+                            Masuk: <strong class="text-slate-700">${r.timeIn || '-'}</strong> (${r.methodIn || '-'}) • 
+                            Pulang: <strong class="text-slate-700">${r.timeOut || '-'}</strong>
+                        </p>
+                        ${r.notes ? `<p class="text-[11px] text-slate-400 italic">"${r.notes}"</p>` : ''}
+                    </div>
+                    ${hasPhoto ? `
+                        <button onclick="openPhotoModal('${r.id}')" class="shrink-0 w-12 h-12 rounded-xl overflow-hidden border border-slate-200 relative group">
+                            <img src="${r.photoIn || r.photoOut}" class="w-full h-full object-cover">
+                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition">
+                                <i data-lucide="zoom-in" class="w-4 h-4"></i>
+                            </div>
+                        </button>
+                    ` : `
+                        <span class="text-[10px] font-medium text-slate-400 bg-slate-100 px-2.5 py-1.5 rounded-lg">Tap Click</span>
+                    `}
+                </div>`;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        // --- 8. LOGIKA DASHBOARD ADMIN ---
+        function switchAdminTab(tab) {
+            ['rekap', 'users'].forEach(t => {
+                document.getElementById(`admin-sec-${t}`).classList.toggle('hidden', t !== tab);
+                const btn = document.getElementById(`tab-admin-${t}`);
+                if (t === tab) {
+                    btn.className = 'py-2.5 px-3 rounded-xl text-xs font-bold transition bg-white text-indigo-600 shadow-sm flex items-center justify-center gap-2';
+                } else {
+                    btn.className = 'py-2.5 px-3 rounded-xl text-xs font-bold transition text-slate-600 hover:text-slate-900 flex items-center justify-center gap-2';
+                }
+            });
+            if (tab === 'rekap') renderAdminDashboard();
+            if (tab === 'users') renderUsersTable();
+        }
+
+        function renderAdminDashboard() {
+            const users = getUsers().filter(u => u.role === 'user');
+            const today = getTodayISO();
+            const records = getAttendances();
+            const todayRecords = records.filter(r => r.date === today);
+
+            document.getElementById('stat-total-guru').textContent = users.length;
+            document.getElementById('stat-hadir').textContent = todayRecords.filter(r => r.status === 'Hadir').length;
+            document.getElementById('stat-izin').textContent = todayRecords.filter(r => r.status === 'Izin' || r.status === 'Cuti').length;
+            document.getElementById('stat-alpa').textContent = todayRecords.filter(r => r.status === 'Alpa').length;
+
+            renderAdminAttendance();
+        }
+
+        function resetDateFilter() {
+            document.getElementById('admin-filter-date').value = '';
+            renderAdminAttendance();
+        }
+
+        function renderAdminAttendance() {
+            const filterDate = document.getElementById('admin-filter-date').value;
+            const search = document.getElementById('admin-search-att').value.toLowerCase();
+            let records = getAttendances();
+
+            if (filterDate) {
+                records = records.filter(r => r.date === filterDate);
+            }
+            if (search) {
+                records = records.filter(r => r.userName.toLowerCase().includes(search) || (r.userNip && r.userNip.includes(search)));
+            }
+
+            const tbody = document.getElementById('admin-attendance-tbody');
+            if (records.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-400">Tidak ada data presensi ditemukan.</td></tr>`;
+                return;
+            }
+
+            const badgeColors = {
+                'Hadir': 'bg-emerald-100 text-emerald-700',
+                'Izin': 'bg-amber-100 text-amber-700',
+                'Cuti': 'bg-sky-100 text-sky-700',
+                'Alpa': 'bg-rose-100 text-rose-700'
+            };
+
+            tbody.innerHTML = records.map(r => `
+                <tr class="hover:bg-slate-50/80 transition">
+                    <td class="py-3 px-4">
+                        <p class="font-bold text-slate-800">${r.userName}</p>
+                        <p class="text-[10px] text-slate-400">${r.userNip || '-'}</p>
+                    </td>
+                    <td class="py-3 px-3 font-medium text-slate-600 whitespace-nowrap">${formatIndoDate(r.date)}</td>
+                    <td class="py-3 px-3 whitespace-nowrap">
+                        <span class="text-emerald-600 font-bold">${r.timeIn || '-'}</span> / 
+                        <span class="text-amber-600 font-bold">${r.timeOut || '-'}</span>
+                    </td>
+                    <td class="py-3 px-3">
+                        <span class="px-2 py-0.5 text-[10px] font-bold rounded-full ${badgeColors[r.status] || 'bg-slate-100'}">${r.status}</span>
+                        ${r.notes ? `<p class="text-[10px] text-slate-400 max-w-[140px] truncate mt-0.5" title="${r.notes}">${r.notes}</p>` : ''}
+                    </td>
+                    <td class="py-3 px-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[11px] text-slate-600">${r.methodIn || '-'}</span>
+                            ${(r.photoIn || r.photoOut) ? `
+                                <button onclick="openPhotoModal('${r.id}')" class="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg text-[10px] font-bold flex items-center gap-1">
+                                    <i data-lucide="image" class="w-3 h-3"></i> Foto
+                                </button>
+                            ` : ''}
+                        </div>
+                    </td>
+                    <td class="py-3 px-4 text-right">
+                        <button onclick="deleteAttendance('${r.id}')" title="Hapus Data" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function deleteAttendance(id) {
+            const records = getAttendances().filter(r => r.id !== id);
+            saveAttendances(records);
+            showToast('Data presensi berhasil dihapus.', 'info');
+            renderAdminDashboard();
+        }
+
+        // --- 9. MANAJEMEN PENGGUNA ADMIN (SINGLE, BULK, LIHAT & UBAH PASSWORD) ---
+        function switchAddUserMode(mode) {
+            document.getElementById('single-user-form').classList.toggle('hidden', mode !== 'single');
+            document.getElementById('bulk-user-form').classList.toggle('hidden', mode !== 'bulk');
+
+            const btnSingle = document.getElementById('btn-mode-single');
+            const btnBulk = document.getElementById('btn-mode-bulk');
+            if (mode === 'single') {
+                btnSingle.className = 'pb-3 text-xs font-bold border-b-2 border-indigo-600 text-indigo-600';
+                btnBulk.className = 'pb-3 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700';
+            } else {
+                btnBulk.className = 'pb-3 text-xs font-bold border-b-2 border-indigo-600 text-indigo-600';
+                btnSingle.className = 'pb-3 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-700';
+            }
+        }
+
+        // Tambah 1 Pengguna
+        document.getElementById('single-user-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('new-user-name').value.trim();
+            const nip = document.getElementById('new-user-nip').value.trim();
+            const username = document.getElementById('new-user-username').value.trim();
+            const password = document.getElementById('new-user-password').value;
+            const role = document.getElementById('new-user-role').value;
+
+            const users = getUsers();
+            if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+                showToast(`Username "${username}" sudah digunakan!`, 'error');
+                return;
+            }
+
+            users.push({
+                id: 'u-' + Date.now(),
+                name,
+                nip,
+                username,
+                password,
+                role
+            });
+            saveUsers(users);
+            this.reset();
+            showToast(`Akun "${name}" berhasil ditambahkan sebagai ${role.toUpperCase()}!`, 'success');
+            renderUsersTable();
+            renderAdminDashboard();
+        });
+
+        // Tambah Banyak Pengguna (Bulk)
+        document.getElementById('bulk-user-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const rawText = document.getElementById('bulk-user-input').value.trim();
+            const defaultRole = document.getElementById('bulk-default-role').value;
+            if (!rawText) return;
+
+            const lines = rawText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+            const users = getUsers();
+            let addedCount = 0;
+            let skippedCount = 0;
+
+            lines.forEach((line, idx) => {
+                // Mendukung pemisah koma (,) atau titik koma (;)
+                const parts = line.split(/[,;]/).map(p => p.trim());
+                if (parts.length >= 4) {
+                    const [name, nip, username, password, roleRaw] = parts;
+                    const roleClean = (roleRaw && (roleRaw.toLowerCase() === 'admin' || roleRaw.toLowerCase() === 'user'))
+                        ? roleRaw.toLowerCase()
+                        : defaultRole;
+
+                    if (name && username && password && !users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+                        users.push({
+                            id: 'u-' + Date.now() + '-' + idx,
+                            name,
+                            nip: nip || '-',
+                            username,
+                            password,
+                            role: roleClean
+                        });
+                        addedCount++;
+                    } else {
+                        skippedCount++;
+                    }
+                } else {
+                    skippedCount++;
+                }
+            });
+
+            saveUsers(users);
+            if (addedCount > 0) {
+                document.getElementById('bulk-user-input').value = '';
+                showToast(`Berhasil menambahkan ${addedCount} pengguna baru!${skippedCount ? ` (${skippedCount} baris dilewati/duplikat)` : ''}`, 'success');
+                renderUsersTable();
+                renderAdminDashboard();
+            } else {
+                showToast('Gagal memproses input massal. Periksa format penulisan atau username duplikat.', 'error');
+            }
+        });
+
+        function renderUsersTable() {
+            const search = document.getElementById('admin-search-user').value.toLowerCase();
+            let users = getUsers();
+            if (search) {
+                users = users.filter(u => u.name.toLowerCase().includes(search) || u.username.toLowerCase().includes(search));
+            }
+
+            const tbody = document.getElementById('admin-users-tbody');
+            tbody.innerHTML = users.map(u => {
+                const isSelf = u.id === currentUser.id;
+                return `
+                <tr class="hover:bg-slate-50/80 transition">
+                    <td class="py-3 px-4">
+                        <p class="font-bold text-slate-800">${u.name} ${isSelf ? '<span class="text-[10px] text-indigo-600">(Anda)</span>' : ''}</p>
+                        <p class="text-[10px] text-slate-400">NIP: ${u.nip}</p>
+                    </td>
+                    <td class="py-3 px-3 font-mono font-semibold text-slate-700">${u.username}</td>
+                    <td class="py-3 px-3">
+                        <div class="inline-flex items-center gap-1.5 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg">
+                            <span class="font-mono font-bold text-slate-800">${u.password}</span>
+                            <button onclick="copyText('${u.password}')" title="Salin Password" class="text-slate-400 hover:text-indigo-600">
+                                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </td>
+                    <td class="py-3 px-3">
+                        <span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded-full ${u.role === 'admin' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-700'}">
+                            ${u.role === 'admin' ? 'Admin' : 'User (Guru)'}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 text-right whitespace-nowrap space-x-1">
+                        <button onclick="openChangePasswordModal('${u.username}', ${isSelf})" class="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-[11px] font-bold inline-flex items-center gap-1 transition">
+                            <i data-lucide="key" class="w-3 h-3"></i>
+                            <span>Ganti Sandi</span>
+                        </button>
+                        ${!isSelf ? `
+                            <button onclick="deleteUser('${u.id}')" title="Hapus Pengguna" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition inline-flex items-center">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        ` : ''}
+                    </td>
+                </tr>`;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        function copyText(text) {
+            const temp = document.createElement('textarea');
+            temp.value = text;
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+            showToast(`Password "${text}" disalin!`, 'info');
+        }
+
+        function deleteUser(userId) {
+            const users = getUsers().filter(u => u.id !== userId);
+            saveUsers(users);
+            showToast('Akun pengguna berhasil dihapus.', 'info');
+            renderUsersTable();
+            renderAdminDashboard();
+        }
+
+        // --- 10. MODAL GANTI PASSWORD & MODAL FOTO ---
+        function openChangePasswordModal(username, isSelf) {
+            const users = getUsers();
+            const target = users.find(u => u.username === username);
+            if (!target) return;
+
+            document.getElementById('modal-pwd-title').textContent = isSelf ? 'Ganti Kata Sandi Saya' : `Ganti Sandi: ${target.name}`;
+            document.getElementById('modal-pwd-username').value = target.username;
+            document.getElementById('modal-pwd-display').value = `${target.name} (@${target.username})`;
+            document.getElementById('modal-pwd-new').value = '';
+
+            const modal = document.getElementById('password-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        document.getElementById('change-password-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const username = document.getElementById('modal-pwd-username').value;
+            const newPwd = document.getElementById('modal-pwd-new').value;
+
+            const users = getUsers();
+            const idx = users.findIndex(u => u.username === username);
+            if (idx !== -1) {
+                users[idx].password = newPwd;
+                saveUsers(users);
+                if (currentUser && currentUser.username === username) {
+                    currentUser.password = newPwd;
+                    localStorage.setItem(STORAGE_SESSION_KEY, JSON.stringify(currentUser));
+                }
+                showToast(`Kata sandi untuk @${username} berhasil diperbarui!`, 'success');
+                closeModal('password-modal');
+                if (currentUser.role === 'admin') renderUsersTable();
+            }
+        });
+
+        function openPhotoModal(attId) {
+            const rec = getAttendances().find(r => r.id === attId);
+            if (!rec) return;
+
+            const imgSrc = rec.photoIn || rec.photoOut;
+            if (!imgSrc) return;
+
+            document.getElementById('photo-modal-title').textContent = `Bukti Selfie • ${rec.userName}`;
+            document.getElementById('photo-modal-img').src = imgSrc;
+            document.getElementById('photo-modal-caption').innerHTML = `
+                <strong>Tanggal:</strong> ${formatIndoDate(rec.date)} | <strong>Status:</strong> ${rec.status}<br>
+                <strong>Waktu:</strong> Masuk ${rec.timeIn || '-'} / Pulang ${rec.timeOut || '-'} (${rec.methodIn || '-'})<br>
+                <strong>Catatan:</strong> ${rec.notes || '-'}
+            `;
+
+            const modal = document.getElementById('photo-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        // --- 11. BOOTSTRAP APLIKASI SAAT HALAMAN DIMUAT ---
+        window.addEventListener('DOMContentLoaded', () => {
+            getUsers(); // Pastikan data default tersimpan
+            updateCloudStatusUI();
+            startCloudPolling();
+            startRealtimeClock();
+            lucide.createIcons();
+
+            const savedSession = localStorage.getItem(STORAGE_SESSION_KEY);
+            if (savedSession) {
+                try {
+                    currentUser = JSON.parse(savedSession);
+                    initAppView();
+                } catch (e) {
+                    localStorage.removeItem(STORAGE_SESSION_KEY);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
