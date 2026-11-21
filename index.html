@@ -62,17 +62,27 @@
     <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-md pointer-events-none flex flex-col gap-2"></div>
 
     <!-- ==================== HALAMAN 1: LOGIN & LUPA SANDI ==================== -->
-    <div id="auth-view" class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-indigo-600 via-blue-700 to-slate-900">
-        <div class="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden animate-fade-in">
+    <div id="auth-view" class="min-h-screen flex flex-col items-center justify-center p-4 pt-28 sm:pt-32 pb-12 relative overflow-hidden bg-gradient-to-b from-sky-200 via-sky-100 to-emerald-100">
+        <!-- Latar Belakang Foto Asli MIN 17 ACEH BARAT -->
+        <div class="absolute inset-0 pointer-events-none select-none overflow-hidden" aria-hidden="true">
+            <img src="background.jpg" alt="MIN 17 Aceh Barat"
+                 onerror="this.style.display='none'"
+                 class="w-full h-full object-cover object-top">
+            <!-- Lapisan penyeimbang kontras lembut agar form login tetap jelas terbaca tanpa menutupi banner atas -->
+            <div class="absolute inset-0 bg-gradient-to-b from-transparent via-slate-900/15 to-slate-900/35"></div>
+        </div>
+
+        <div class="relative z-10 w-full max-w-sm sm:max-w-md bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl overflow-hidden animate-fade-in border border-white/80">
             <!-- Header Brand -->
-            <div class="bg-indigo-600 px-6 py-8 text-center text-white relative overflow-hidden">
+            <div class="bg-gradient-to-r from-emerald-800 via-emerald-700 to-green-700 px-6 py-5 text-center text-white relative overflow-hidden">
                 <div class="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-xl"></div>
-                <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-indigo-400/20 rounded-full blur-xl"></div>
-                <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner border border-white/30">
-                    <i data-lucide="fingerprint" class="w-9 h-9 text-white"></i>
+                <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-yellow-400/20 rounded-full blur-xl"></div>
+                <div class="w-11 h-11 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-2 shadow-inner border border-white/30">
+                    <i data-lucide="fingerprint" class="w-6 h-6 text-white"></i>
                 </div>
                 <h1 class="font-display text-2xl font-extrabold tracking-tight">SiAbsen Guru</h1>
-                <p class="text-indigo-100 text-xs mt-1">Sistem Presensi Digital & Manajemen Kehadiran</p>
+                <p class="text-emerald-100 text-xs font-bold tracking-wide mt-0.5">MIN 17 ACEH BARAT</p>
+                <p class="text-yellow-200 text-[11px] font-medium mt-0.5">Unggul dalam Prestasi, Islami dalam Sikap</p>
             </div>
 
             <!-- Form Login -->
@@ -111,7 +121,7 @@
                         </div>
                     </div>
 
-                    <button type="submit" class="w-full py-3.5 px-4 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] text-white font-semibold rounded-xl shadow-lg shadow-indigo-200 transition flex items-center justify-center gap-2 text-sm">
+                    <button type="submit" class="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-semibold rounded-xl shadow-lg shadow-emerald-200 transition flex items-center justify-center gap-2 text-sm">
                         <span>Masuk Sekarang</span>
                         <i data-lucide="arrow-right" class="w-4 h-4"></i>
                     </button>
@@ -893,226 +903,112 @@ Operator TU, 199503032020011005, tu_admin, admin999, admin"
         const STORAGE_SCHOOL_SETTINGS_KEY = 'siabsen_guru_school_settings_v1';
 
         const defaultSchoolSettings = {
-            schoolName: 'Sistem Presensi Digital Sekolah (SiAbsen Guru)',
-            city: '',
+            schoolName: 'MIN 17 ACEH BARAT',
+            city: 'Aceh Barat',
             principalName: '____________________________',
             principalNip: '____________________________'
         };
 
-        function getSchoolSettings() {
-            const raw = localStorage.getItem(STORAGE_SCHOOL_SETTINGS_KEY);
-            return raw ? { ...defaultSchoolSettings, ...JSON.parse(raw) } : defaultSchoolSettings;
-        }
+        // --- 2. MANAJEMEN DATA & SINKRONISASI CLOUD (FIREBASE) ---
+        const defaultUsers = [
+            { id: 'u-admin', name: 'Administrator Sekolah', nip: '198001012005011001', username: 'admin', password: 'admin123', role: 'admin' },
+            { id: 'u-guru1', name: 'Budi Santoso, S.Pd', nip: '198501012010011001', username: 'guru1', password: 'guru123', role: 'user' },
+            { id: 'u-guru2', name: 'Rina Marlina, M.Pd', nip: '198907142014032003', username: 'guru2', password: 'guru123', role: 'user' }
+        ];
 
-        function saveSchoolSettings(settings) {
-            localStorage.setItem(STORAGE_SCHOOL_SETTINGS_KEY, JSON.stringify(settings));
-            syncNodeToCloud('settings', settings);
-        }
-
-        function openPrincipalModal() {
-            const s = getSchoolSettings();
-            document.getElementById('setting-school-name').value = s.schoolName === defaultSchoolSettings.schoolName ? '' : s.schoolName;
-            document.getElementById('setting-school-city').value = s.city || '';
-            document.getElementById('setting-principal-name').value = s.principalName.startsWith('___') ? '' : s.principalName;
-            document.getElementById('setting-principal-nip').value = s.principalNip.startsWith('___') ? '' : s.principalNip;
-            const modal = document.getElementById('principal-modal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            lucide.createIcons();
-        }
-
-        document.getElementById('principal-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const settings = {
-                schoolName: document.getElementById('setting-school-name').value.trim() || defaultSchoolSettings.schoolName,
-                city: document.getElementById('setting-school-city').value.trim(),
-                principalName: document.getElementById('setting-principal-name').value.trim(),
-                principalNip: document.getElementById('setting-principal-nip').value.trim()
-            };
-            saveSchoolSettings(settings);
-            closeModal('principal-modal');
-            showToast('Data Kop & TTD Kepala Sekolah berhasil disimpan!', 'success');
-        });
-
+        let currentUser = null;
         let cloudSyncTimer = null;
-        let isSyncing = false;
-
-        // Cek apakah ada parameter ?db= pada tautan yang dibagikan Admin
-        function applyUrlParamConfig() {
-            const params = new URLSearchParams(window.location.search);
-            const dbParam = params.get('db');
-            if (dbParam && dbParam.startsWith('https://')) {
-                const cleanUrl = dbParam.trim().replace(/\/+$/, '');
-                localStorage.setItem(STORAGE_CLOUD_URL_KEY, cleanUrl);
-                // Bersihkan parameter dari address bar agar tautan terlihat rapi
-                window.history.replaceState({}, document.title, window.location.pathname);
-            }
-        }
 
         function getCloudUrl() {
             const saved = localStorage.getItem(STORAGE_CLOUD_URL_KEY);
-            const url = saved || DEFAULT_CLOUD_URL;
-            return url ? url.trim().replace(/\/+$/, '') : '';
+            const raw = (saved && saved.trim()) ? saved.trim() : DEFAULT_CLOUD_URL;
+            return raw ? raw.replace(/\/+$/, '') : '';
         }
 
-        function copyTeacherInviteLink() {
-            const url = getCloudUrl();
-            if (!url) {
-                showToast('Simpan URL Firebase terlebih dahulu sebelum menyalin link guru!', 'error');
-                return;
+        function applyUrlParamConfig() {
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const cloudParam = params.get('cloud');
+                if (cloudParam && cloudParam.startsWith('http')) {
+                    localStorage.setItem(STORAGE_CLOUD_URL_KEY, cloudParam.replace(/\/+$/, ''));
+                }
+            } catch (e) {
+                console.warn('Gagal membaca parameter URL:', e);
             }
-            const basePage = window.location.origin + window.location.pathname;
-            const inviteLink = `${basePage}?db=${encodeURIComponent(url)}`;
-            copyText(inviteLink);
-            showToast('Link khusus guru berhasil disalin! Bagikan ke grup WhatsApp guru.', 'success');
         }
 
         function updateCloudStatusUI() {
             const url = getCloudUrl();
-            const isConnected = Boolean(url);
-
-            // Update indikator di Header Dashboard (Khusus Admin)
-            const headerDot = document.getElementById('header-cloud-dot');
-            const headerLabel = document.getElementById('header-cloud-label');
-            if (headerDot && headerLabel) {
-                headerDot.className = isConnected ? 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse' : 'w-2 h-2 rounded-full bg-amber-500';
-                headerLabel.textContent = isConnected ? 'Cloud' : 'Lokal';
-            }
-
-            // Update banner di dalam Modal Pengaturan Cloud
+            const dot = document.getElementById('header-cloud-dot');
+            const label = document.getElementById('header-cloud-label');
             const banner = document.getElementById('cloud-status-banner');
             const btnDisconnect = document.getElementById('btn-disconnect-cloud');
-            if (banner) {
-                if (isConnected) {
+            const urlInput = document.getElementById('cloud-url-input');
+
+            if (urlInput && url) urlInput.value = url;
+
+            if (url) {
+                if (dot) dot.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
+                if (label) label.textContent = 'Cloud Aktif';
+                if (btnDisconnect) btnDisconnect.classList.remove('hidden');
+                if (banner) {
                     banner.className = 'p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-start gap-2.5';
                     banner.innerHTML = `
                         <i data-lucide="cloud-check" class="w-4 h-4 text-emerald-600 shrink-0 mt-0.5"></i>
-                        <div class="break-all">
-                            <p class="font-bold">Terhubung ke Cloud Real-Time</p>
-                            <p class="text-[11px] text-emerald-700 mt-0.5 font-mono">${url}</p>
-                        </div>`;
-                    if (btnDisconnect) btnDisconnect.classList.remove('hidden');
-                } else {
-                    banner.className = 'p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex items-start gap-2.5';
-                    banner.innerHTML = `
-                        <i data-lucide="hard-drive" class="w-4 h-4 text-amber-600 shrink-0 mt-0.5"></i>
                         <div>
-                            <p class="font-bold">Saat ini menggunakan Penyimpanan Lokal (Offline HP)</p>
-                            <p class="text-[11px] text-amber-700 mt-0.5">Masukkan URL Firebase Realtime Database di bawah agar data guru & absensi tersinkronisasi otomatis ke semua perangkat.</p>
+                            <p class="font-bold">Terhubung ke Firebase Cloud Real-Time</p>
+                            <p class="text-[11px] text-emerald-700 mt-0.5 break-all">${url}</p>
                         </div>`;
-                    if (btnDisconnect) btnDisconnect.classList.add('hidden');
+                    lucide.createIcons();
                 }
-                lucide.createIcons();
+            } else {
+                if (dot) dot.className = 'w-2 h-2 rounded-full bg-amber-500';
+                if (label) label.textContent = 'Lokal';
+                if (btnDisconnect) btnDisconnect.classList.add('hidden');
             }
         }
 
-        // Data awal default jika baru pertama kali dibuka
-        const defaultUsers = [
-            {
-                id: 'u-1',
-                name: 'Administrator Sekolah',
-                nip: '198001012005011001',
-                username: 'admin',
-                password: 'admin123',
-                role: 'admin'
-            },
-            {
-                id: 'u-2',
-                name: 'Budi Santoso, S.Pd',
-                nip: '198501012010011001',
-                username: 'guru1',
-                password: 'guru123',
-                role: 'user'
-            },
-            {
-                id: 'u-3',
-                name: 'Rina Marlina, M.Pd',
-                nip: '198907142014032003',
-                username: 'guru2',
-                password: 'guru123',
-                role: 'user'
-            }
-        ];
-
-        function getUsers() {
-            const raw = localStorage.getItem(STORAGE_USERS_KEY);
-            if (!raw) {
-                localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(defaultUsers));
-                return defaultUsers;
-            }
-            return JSON.parse(raw);
-        }
-
-        function saveUsers(users) {
-            localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users));
-            syncNodeToCloud('users', users);
-        }
-
-        function getAttendances() {
-            const raw = localStorage.getItem(STORAGE_ATT_KEY);
-            return raw ? JSON.parse(raw) : [];
-        }
-
-        function saveAttendances(records) {
+        async function syncToCloud(path, data) {
+            const url = getCloudUrl();
+            if (!url) return;
             try {
-                localStorage.setItem(STORAGE_ATT_KEY, JSON.stringify(records));
-                syncNodeToCloud('attendances', records);
-            } catch (e) {
-                showToast('Penyimpanan penuh! Hapus beberapa riwayat lama.', 'error');
-            }
-        }
-
-        // --- FUNGSI SINKRONISASI FIREBASE REST API ---
-        async function syncNodeToCloud(nodeName, dataArray) {
-            const baseUrl = getCloudUrl();
-            if (!baseUrl) return;
-            try {
-                await fetch(`${baseUrl}/siabsen/${nodeName}.json`, {
+                await fetch(`${url}/${path}.json`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(dataArray)
+                    body: JSON.stringify(data)
                 });
             } catch (err) {
-                console.warn('Gagal mengirim ke cloud:', err);
+                console.warn(`Gagal menyinkronkan ${path} ke cloud:`, err);
             }
         }
 
         async function pullCloudToLocal(notify = false) {
-            const baseUrl = getCloudUrl();
-            if (!baseUrl || isSyncing) return;
-            isSyncing = true;
+            const url = getCloudUrl();
+            if (!url) return;
             try {
-                const res = await fetch(`${baseUrl}/siabsen.json`);
-                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const res = await fetch(`${url}/siabsen_data.json`);
+                if (!res.ok) return;
                 const cloudData = await res.json();
-
-                let updated = false;
-                if (cloudData && Array.isArray(cloudData.users) && cloudData.users.length > 0) {
-                    const prevUsers = localStorage.getItem(STORAGE_USERS_KEY);
-                    const nextUsers = JSON.stringify(cloudData.users);
-                    if (prevUsers !== nextUsers) {
-                        localStorage.setItem(STORAGE_USERS_KEY, nextUsers);
-                        updated = true;
-                    }
-                } else if (!cloudData || !cloudData.users) {
-                    // Jika cloud masih kosong, unggah akun default ke cloud secara otomatis
-                    await syncNodeToCloud('users', getUsers());
+                if (!cloudData) {
+                    await pushLocalToCloud(false);
+                    return;
                 }
 
-                if (cloudData && Array.isArray(cloudData.attendances)) {
-                    const prevAtt = localStorage.getItem(STORAGE_ATT_KEY);
-                    const nextAtt = JSON.stringify(cloudData.attendances);
-                    if (prevAtt !== nextAtt) {
-                        localStorage.setItem(STORAGE_ATT_KEY, nextAtt);
-                        updated = true;
-                    }
+                let changed = false;
+                if (Array.isArray(cloudData.users) && cloudData.users.length > 0) {
+                    localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(cloudData.users));
+                    changed = true;
+                }
+                if (Array.isArray(cloudData.attendances)) {
+                    localStorage.setItem(STORAGE_ATT_KEY, JSON.stringify(cloudData.attendances));
+                    changed = true;
+                }
+                if (cloudData.schoolSettings && typeof cloudData.schoolSettings === 'object') {
+                    localStorage.setItem(STORAGE_SCHOOL_SETTINGS_KEY, JSON.stringify(cloudData.schoolSettings));
+                    changed = true;
                 }
 
-                if (cloudData && cloudData.settings && typeof cloudData.settings === 'object') {
-                    localStorage.setItem(STORAGE_SCHOOL_SETTINGS_KEY, JSON.stringify(cloudData.settings));
-                }
-
-                if (updated && currentUser) {
+                if (changed && currentUser) {
                     if (currentUser.role === 'admin') {
                         renderAdminDashboard();
                         if (!document.getElementById('admin-sec-users').classList.contains('hidden')) {
@@ -1122,26 +1018,47 @@ Operator TU, 199503032020011005, tu_admin, admin999, admin"
                         renderGuruDashboard();
                     }
                 }
-
-                if (notify) showToast('Data berhasil disinkronkan dengan server Cloud!', 'success');
+                if (notify) showToast('Data terbaru berhasil ditarik dari Cloud!', 'success');
             } catch (err) {
-                if (notify) showToast('Gagal terhubung ke Firebase. Periksa URL & aturan Test Mode.', 'error');
-            } finally {
-                isSyncing = false;
+                if (notify) showToast('Gagal terhubung ke server Cloud.', 'error');
+            }
+        }
+
+        async function pushLocalToCloud(notify = true) {
+            const url = getCloudUrl();
+            if (!url) {
+                showToast('URL Firebase belum diisi!', 'error');
+                return;
+            }
+            try {
+                const payload = {
+                    users: getUsers(),
+                    attendances: getAttendances(),
+                    schoolSettings: getSchoolSettings(),
+                    updatedAt: new Date().toISOString()
+                };
+                const res = await fetch(`${url}/siabsen_data.json`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok && notify) {
+                    showToast('Seluruh data lokal berhasil diunggah ke Cloud!', 'success');
+                }
+            } catch (err) {
+                if (notify) showToast('Gagal mengunggah data ke Cloud.', 'error');
             }
         }
 
         function startCloudPolling() {
             if (cloudSyncTimer) clearInterval(cloudSyncTimer);
-            if (!getCloudUrl()) return;
             pullCloudToLocal(false);
             cloudSyncTimer = setInterval(() => {
                 pullCloudToLocal(false);
-            }, 6000); // Sinkronisasi otomatis setiap 6 detik
+            }, 8000);
         }
 
         function openCloudSetupModal() {
-            document.getElementById('cloud-url-input').value = getCloudUrl();
             updateCloudStatusUI();
             const modal = document.getElementById('cloud-modal');
             modal.classList.remove('hidden');
@@ -1150,138 +1067,184 @@ Operator TU, 199503032020011005, tu_admin, admin999, admin"
         }
 
         async function testCloudConnection() {
-            const rawUrl = document.getElementById('cloud-url-input').value.trim().replace(/\/+$/, '');
-            if (!rawUrl || !rawUrl.startsWith('https://')) {
-                showToast('Masukkan URL Firebase yang valid (diawali https://)', 'error');
+            const inputUrl = document.getElementById('cloud-url-input').value.trim().replace(/\/+$/, '');
+            if (!inputUrl) {
+                showToast('Masukkan URL Firebase terlebih dahulu.', 'error');
                 return;
             }
             try {
-                showToast('Menguji koneksi ke Firebase...', 'info');
-                const res = await fetch(`${rawUrl}/siabsen_ping.json`, {
+                const res = await fetch(`${inputUrl}/siabsen_ping.json`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ok: true, time: Date.now() })
+                    body: JSON.stringify({ ping: Date.now() })
                 });
-                if (!res.ok) throw new Error('Status ' + res.status);
-                showToast('Koneksi berhasil! Klik "Simpan & Aktifkan Cloud".', 'success');
+                if (res.ok) {
+                    showToast('Koneksi Firebase berhasil & siap digunakan!', 'success');
+                } else {
+                    showToast('Gagal mengakses Firebase. Pastikan Rules dalam Test Mode.', 'error');
+                }
             } catch (e) {
-                showToast('Koneksi gagal! Pastikan Realtime Database aktif dalam "Test Mode".', 'error');
+                showToast('URL tidak valid atau jaringan bermasalah.', 'error');
             }
         }
 
         async function saveCloudConfig() {
-            const rawUrl = document.getElementById('cloud-url-input').value.trim().replace(/\/+$/, '');
-            if (!rawUrl || !rawUrl.startsWith('https://')) {
-                showToast('Masukkan URL Firebase yang valid terlebih dahulu.', 'error');
+            const inputUrl = document.getElementById('cloud-url-input').value.trim().replace(/\/+$/, '');
+            if (!inputUrl) {
+                showToast('Masukkan URL Firebase yang valid.', 'error');
                 return;
             }
-            localStorage.setItem(STORAGE_CLOUD_URL_KEY, rawUrl);
+            localStorage.setItem(STORAGE_CLOUD_URL_KEY, inputUrl);
             updateCloudStatusUI();
-            showToast('Mode Cloud diaktifkan! Menyinkronkan data...', 'success');
-            await pullCloudToLocal(true);
+            await pullCloudToLocal(false);
             startCloudPolling();
-            closeModal('cloud-modal');
+            showToast('Sinkronisasi Cloud diaktifkan!', 'success');
         }
 
         function disconnectCloud() {
             localStorage.removeItem(STORAGE_CLOUD_URL_KEY);
-            if (cloudSyncTimer) clearInterval(cloudSyncTimer);
             document.getElementById('cloud-url-input').value = '';
             updateCloudStatusUI();
-            showToast('Koneksi Cloud diputuskan. Kembali ke penyimpanan lokal.', 'info');
+            showToast('Koneksi Cloud diputus. Kembali ke mode lokal.', 'info');
         }
 
-        async function pushLocalToCloud() {
-            if (!getCloudUrl()) {
-                showToast('Simpan URL Firebase terlebih dahulu sebelum mengunggah data.', 'error');
-                return;
+        function copyTeacherInviteLink() {
+            const url = getCloudUrl();
+            const baseUrl = window.location.origin + window.location.pathname;
+            const shareLink = url ? `${baseUrl}?cloud=${encodeURIComponent(url)}` : baseUrl;
+            copyText(shareLink);
+            showToast('Tautan aplikasi untuk guru berhasil disalin!', 'success');
+        }
+
+        function getUsers() {
+            const raw = localStorage.getItem(STORAGE_USERS_KEY);
+            if (!raw) {
+                localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(defaultUsers));
+                return [...defaultUsers];
             }
-            showToast('Mengunggah data pengguna & absensi ke Cloud...', 'info');
-            await syncNodeToCloud('users', getUsers());
-            await syncNodeToCloud('attendances', getAttendances());
-            showToast('Seluruh data lokal berhasil diunggah ke Cloud!', 'success');
+            try {
+                const parsed = JSON.parse(raw);
+                return Array.isArray(parsed) && parsed.length > 0 ? parsed : [...defaultUsers];
+            } catch (e) {
+                return [...defaultUsers];
+            }
         }
 
-        let currentUser = null;
-        let activeStreams = { daily: null, manual: null };
-        let capturedPhotos = { daily: null, manual: null };
+        function saveUsers(users) {
+            localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users));
+            syncToCloud('siabsen_data/users', users);
+        }
 
-        // --- 2. SISTEM NOTIFIKASI TOAST ---
-        function showToast(message, type = 'success') {
+        function getAttendances() {
+            const raw = localStorage.getItem(STORAGE_ATT_KEY);
+            if (!raw) return [];
+            try {
+                const parsed = JSON.parse(raw);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveAttendances(records) {
+            localStorage.setItem(STORAGE_ATT_KEY, JSON.stringify(records));
+            syncToCloud('siabsen_data/attendances', records);
+        }
+
+        function getSchoolSettings() {
+            const raw = localStorage.getItem(STORAGE_SCHOOL_SETTINGS_KEY);
+            if (!raw) return { ...defaultSchoolSettings };
+            try {
+                return { ...defaultSchoolSettings, ...JSON.parse(raw) };
+            } catch (e) {
+                return { ...defaultSchoolSettings };
+            }
+        }
+
+        function openPrincipalModal() {
+            const s = getSchoolSettings();
+            document.getElementById('setting-school-name').value = s.schoolName || '';
+            document.getElementById('setting-school-city').value = s.city || '';
+            document.getElementById('setting-principal-name').value = s.principalName === defaultSchoolSettings.principalName ? '' : s.principalName;
+            document.getElementById('setting-principal-nip').value = s.principalNip === defaultSchoolSettings.principalNip ? '' : s.principalNip;
+
+            const modal = document.getElementById('principal-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        document.getElementById('principal-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const settings = {
+                schoolName: document.getElementById('setting-school-name').value.trim(),
+                city: document.getElementById('setting-school-city').value.trim(),
+                principalName: document.getElementById('setting-principal-name').value.trim(),
+                principalNip: document.getElementById('setting-principal-nip').value.trim()
+            };
+            localStorage.setItem(STORAGE_SCHOOL_SETTINGS_KEY, JSON.stringify(settings));
+            syncToCloud('siabsen_data/schoolSettings', settings);
+            closeModal('principal-modal');
+            showToast('Pengaturan Kop & TTD Kepala Sekolah disimpan!', 'success');
+        });
+
+        // --- 3. NOTIFIKASI TOAST & UTILITAS WAKTU ---
+        function showToast(message, type = 'info') {
             const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
             const colors = {
-                success: 'bg-emerald-600 text-white shadow-emerald-900/20',
-                error: 'bg-rose-600 text-white shadow-rose-900/20',
-                info: 'bg-indigo-600 text-white shadow-indigo-900/20'
+                success: 'bg-emerald-600 text-white border-emerald-500',
+                error: 'bg-rose-600 text-white border-rose-500',
+                info: 'bg-slate-800 text-white border-slate-700'
             };
-            const icons = {
-                success: 'check-circle',
-                error: 'alert-circle',
-                info: 'info'
-            };
-
-            toast.className = `${colors[type]} px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 text-xs font-semibold pointer-events-auto animate-fade-in`;
-            toast.innerHTML = `<i data-lucide="${icons[type]}" class="w-4 h-4 shrink-0"></i><span>${message}</span>`;
+            const toast = document.createElement('div');
+            toast.className = `pointer-events-auto px-4 py-3 rounded-2xl shadow-xl border text-xs font-semibold flex items-center justify-between gap-3 animate-fade-in ${colors[type] || colors.info}`;
+            toast.innerHTML = `<span>${message}</span>`;
             container.appendChild(toast);
-            lucide.createIcons();
-
             setTimeout(() => {
                 toast.style.opacity = '0';
-                toast.style.transform = 'translateY(-6px)';
-                toast.style.transition = 'all 0.25s ease';
-                setTimeout(() => toast.remove(), 250);
+                toast.style.transition = 'opacity 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
             }, 3200);
         }
 
-        // --- 3. WAKTU & TANGGAL REALTIME ---
         function getTodayISO() {
             const now = new Date();
-            const offset = now.getTimezoneOffset() * 60000;
-            return new Date(now.getTime() - offset).toISOString().split('T')[0];
+            const offset = now.getTimezoneOffset();
+            const local = new Date(now.getTime() - offset * 60 * 1000);
+            return local.toISOString().split('T')[0];
         }
 
-        function formatIndoDate(isoDateStr) {
-            if (!isoDateStr) return '-';
-            const [y, m, d] = isoDateStr.split('-');
-            const bulan = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-            return `${d} ${bulan[parseInt(m, 10) - 1]} ${y}`;
+        function formatIndoDate(isoStr) {
+            if (!isoStr) return '-';
+            const [y, m, d] = isoStr.split('-');
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+            return `${parseInt(d, 10)} ${months[parseInt(m, 10) - 1] || m} ${y}`;
         }
 
         function startRealtimeClock() {
-            const hariList = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-            const bulanList = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-
-            function update() {
+            const updateClock = () => {
                 const now = new Date();
-                const hari = hariList[now.getDay()];
-                const tanggal = now.getDate();
-                const bulan = bulanList[now.getMonth()];
-                const tahun = now.getFullYear();
-
-                const jam = String(now.getHours()).padStart(2, '0');
-                const menit = String(now.getMinutes()).padStart(2, '0');
-                const detik = String(now.getSeconds()).padStart(2, '0');
+                const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+                const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
                 const dateEl = document.getElementById('realtime-date');
                 const clockEl = document.getElementById('realtime-clock');
-                if (dateEl) dateEl.textContent = `${hari}, ${tanggal} ${bulan} ${tahun}`;
-                if (clockEl) clockEl.textContent = `${jam}:${menit}:${detik}`;
-            }
-            update();
-            setInterval(update, 1000);
+                if (dateEl) {
+                    dateEl.textContent = `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+                }
+                if (clockEl) {
+                    clockEl.textContent = now.toTimeString().slice(0, 8);
+                }
+            };
+            updateClock();
+            setInterval(updateClock, 1000);
         }
 
-        // --- 4. AUTENTIKASI (LOGIN, LOGOUT, LUPA SANDI) ---
+        // --- 4. AUTENTIKASI LOGIN, LOGOUT & LUPA SANDI ---
         function togglePasswordVisibility(inputId, btn) {
             const input = document.getElementById(inputId);
-            if (input.type === 'password') {
-                input.type = 'text';
-                btn.innerHTML = '<i data-lucide="eye-off" class="w-4 h-4"></i>';
-            } else {
-                input.type = 'password';
-                btn.innerHTML = '<i data-lucide="eye" class="w-4 h-4"></i>';
-            }
+            const isPwd = input.type === 'password';
+            input.type = isPwd ? 'text' : 'password';
+            btn.innerHTML = `<i data-lucide="${isPwd ? 'eye-off' : 'eye'}" class="w-4 h-4"></i>`;
             lucide.createIcons();
         }
 
@@ -1295,11 +1258,7 @@ Operator TU, 199503032020011005, tu_admin, admin999, admin"
             const username = document.getElementById('login-username').value.trim();
             const password = document.getElementById('login-password').value;
 
-            // Tarik data pengguna terbaru dari cloud jika terhubung sebelum memvalidasi login
-            if (getCloudUrl()) {
-                await pullCloudToLocal(false);
-            }
-
+            await pullCloudToLocal(false);
             const users = getUsers();
             const found = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
 
@@ -1318,26 +1277,22 @@ Operator TU, 199503032020011005, tu_admin, admin999, admin"
             e.preventDefault();
             const username = document.getElementById('forgot-username').value.trim();
             const nip = document.getElementById('forgot-nip').value.trim();
-            const newPwd = document.getElementById('forgot-new-password').value;
+            const newPassword = document.getElementById('forgot-new-password').value;
 
-            if (getCloudUrl()) {
-                await pullCloudToLocal(false);
-            }
-
+            await pullCloudToLocal(false);
             const users = getUsers();
-            const idx = users.findIndex(u => u.username.toLowerCase() === username.toLowerCase() && u.nip === nip);
+            const idx = users.findIndex(u => u.username.toLowerCase() === username.toLowerCase() && (u.nip || '').trim() === nip);
 
             if (idx === -1) {
-                showToast('Kombinasi Username dan NIP/ID Pegawai tidak cocok!', 'error');
+                showToast('Username atau NIP/ID Pegawai tidak cocok!', 'error');
                 return;
             }
 
-            users[idx].password = newPwd;
+            users[idx].password = newPassword;
             saveUsers(users);
-            showToast('Kata sandi berhasil diperbarui! Silakan login.', 'success');
-            document.getElementById('forgot-form').reset();
+            this.reset();
             toggleForgotView(false);
-            document.getElementById('login-username').value = username;
+            showToast('Kata sandi berhasil diperbarui! Silakan login.', 'success');
         });
 
         function logout() {
@@ -1353,79 +1308,63 @@ Operator TU, 199503032020011005, tu_admin, admin999, admin"
 
         // --- 5. INISIALISASI TAMPILAN DASHBOARD ---
         function initAppView() {
-            // Segarkan data user dari storage agar perubahan password/nama selalu sinkron
-            const users = getUsers();
-            const freshUser = users.find(u => u.id === currentUser.id);
-            if (!freshUser) {
-                logout();
-                return;
-            }
-            currentUser = freshUser;
-
             document.getElementById('auth-view').classList.add('hidden');
             document.getElementById('app-view').classList.remove('hidden');
 
             document.getElementById('header-user-name').textContent = currentUser.name;
-            document.getElementById('header-user-nip').textContent = `NIP/ID: ${currentUser.nip} • @${currentUser.username}`;
-            
+            document.getElementById('header-user-nip').textContent = `NIP/ID: ${currentUser.nip || '-'} • @${currentUser.username}`;
             const roleBadge = document.getElementById('header-user-role');
-            const btnCloud = document.getElementById('btn-header-cloud');
+            const cloudBtn = document.getElementById('btn-header-cloud');
+
             if (currentUser.role === 'admin') {
                 roleBadge.textContent = 'Admin';
                 roleBadge.className = 'px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-amber-100 text-amber-800';
-                if (btnCloud) {
-                    btnCloud.classList.remove('hidden');
-                    btnCloud.classList.add('flex');
-                }
-                document.getElementById('guru-dashboard').classList.add('hidden');
+                cloudBtn.classList.remove('hidden');
+                cloudBtn.classList.add('flex');
                 document.getElementById('admin-dashboard').classList.remove('hidden');
-                document.getElementById('today-status-badge').textContent = 'Mode Administrator';
+                document.getElementById('guru-dashboard').classList.add('hidden');
                 renderAdminDashboard();
             } else {
                 roleBadge.textContent = 'Guru';
-                roleBadge.className = 'px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-emerald-100 text-emerald-800';
-                if (btnCloud) {
-                    btnCloud.classList.add('hidden');
-                    btnCloud.classList.remove('flex');
-                }
-                document.getElementById('admin-dashboard').classList.add('hidden');
+                roleBadge.className = 'px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-emerald-100 text-emerald-700';
+                cloudBtn.classList.add('hidden');
+                cloudBtn.classList.remove('flex');
                 document.getElementById('guru-dashboard').classList.remove('hidden');
+                document.getElementById('admin-dashboard').classList.add('hidden');
                 document.getElementById('manual-date').value = getTodayISO();
                 renderGuruDashboard();
             }
             lucide.createIcons();
         }
 
-        // --- 6. KAMERA & KOMPRESI FOTO SELFIE ---
+        // --- 6. KAMERA SELFIE & KOMPRESI FOTO ---
+        const cameraStreams = { daily: null, manual: null };
+        const capturedPhotos = { daily: null, manual: null };
+
         async function startCamera(type) {
             stopCamera(type);
-            const video = document.getElementById(`video-${type}`);
-            const preview = document.getElementById(`preview-${type}`);
-            const placeholder = document.getElementById(`placeholder-${type}`);
-            const btnCapture = document.getElementById(`btn-capture-${type}`);
-            const btnRetake = document.getElementById(`btn-retake-${type}`);
-
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
                     audio: false
                 });
-                activeStreams[type] = stream;
+                cameraStreams[type] = stream;
+                const video = document.getElementById(`video-${type}`);
                 video.srcObject = stream;
                 video.classList.remove('hidden');
-                preview.classList.add('hidden');
-                placeholder.classList.add('hidden');
-                btnCapture.classList.remove('hidden');
-                btnRetake.classList.add('hidden');
+                document.getElementById(`preview-${type}`).classList.add('hidden');
+                document.getElementById(`placeholder-${type}`).classList.add('hidden');
+                document.getElementById(`btn-capture-${type}`).classList.remove('hidden');
+                document.getElementById(`btn-retake-${type}`).classList.add('hidden');
             } catch (err) {
-                showToast('Kamera tidak dapat diakses. Gunakan tombol "Pilih File Foto" di bawah.', 'error');
+                showToast('Kamera tidak dapat diakses. Gunakan tombol Pilih/Unggah Foto.', 'error');
             }
         }
 
         function stopCamera(type) {
-            if (activeStreams[type]) {
-                activeStreams[type].getTracks().forEach(track => track.stop());
-                activeStreams[type] = null;
+            if (cameraStreams[type]) {
+                cameraStreams[type].getTracks().forEach(t => t.stop());
+                cameraStreams[type] = null;
             }
         }
 
@@ -1433,32 +1372,27 @@ Operator TU, 199503032020011005, tu_admin, admin999, admin"
             const video = document.getElementById(`video-${type}`);
             const canvas = document.getElementById(`canvas-${type}`);
             const preview = document.getElementById(`preview-${type}`);
-            const btnCapture = document.getElementById(`btn-capture-${type}`);
-            const btnRetake = document.getElementById(`btn-retake-${type}`);
 
             if (!video.videoWidth) return;
-
-            // Kompresi ukuran agar ringan di localStorage
             const maxW = 480;
-            const scale = maxW / video.videoWidth;
-            canvas.width = maxW;
+            const scale = Math.min(1, maxW / video.videoWidth);
+            canvas.width = video.videoWidth * scale;
             canvas.height = video.videoHeight * scale;
 
             const ctx = canvas.getContext('2d');
-            // Balik horizontal agar hasil sesuai cermin
             ctx.translate(canvas.width, 0);
             ctx.scale(-1, 1);
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
             const dataUrl = canvas.toDataURL('image/jpeg', 0.72);
             capturedPhotos[type] = dataUrl;
+            stopCamera(type);
 
+            video.classList.add('hidden');
             preview.src = dataUrl;
             preview.classList.remove('hidden');
-            video.classList.add('hidden');
-            btnCapture.classList.add('hidden');
-            btnRetake.classList.remove('hidden');
-            stopCamera(type);
+            document.getElementById(`btn-capture-${type}`).classList.add('hidden');
+            document.getElementById(`btn-retake-${type}`).classList.remove('hidden');
             showToast('Foto selfie berhasil diambil!', 'success');
         }
 
@@ -1470,7 +1404,7 @@ Operator TU, 199503032020011005, tu_admin, admin999, admin"
         function handleFileUpload(event, type) {
             const file = event.target.files[0];
             if (!file) return;
-
+            stopCamera(type);
             const reader = new FileReader();
             reader.onload = function(e) {
                 const img = new Image();
@@ -1480,22 +1414,20 @@ Operator TU, 199503032020011005, tu_admin, admin999, admin"
                     const scale = Math.min(1, maxW / img.width);
                     canvas.width = img.width * scale;
                     canvas.height = img.height * scale;
-
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    const compressed = canvas.toDataURL('image/jpeg', 0.72);
 
-                    capturedPhotos[type] = compressed;
-                    stopCamera(type);
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.72);
+                    capturedPhotos[type] = dataUrl;
 
-                    const preview = document.getElementById(`preview-${type}`);
-                    preview.src = compressed;
-                    preview.classList.remove('hidden');
                     document.getElementById(`video-${type}`).classList.add('hidden');
                     document.getElementById(`placeholder-${type}`).classList.add('hidden');
+                    const preview = document.getElementById(`preview-${type}`);
+                    preview.src = dataUrl;
+                    preview.classList.remove('hidden');
                     document.getElementById(`btn-capture-${type}`).classList.add('hidden');
                     document.getElementById(`btn-retake-${type}`).classList.remove('hidden');
-                    showToast('Foto berhasil dilampirkan!', 'success');
+                    showToast('Foto berhasil dimuat!', 'success');
                 };
                 img.src = e.target.result;
             };
