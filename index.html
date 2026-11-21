@@ -68,10 +68,6 @@
             <div class="bg-indigo-600 px-6 py-8 text-center text-white relative overflow-hidden">
                 <div class="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-xl"></div>
                 <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-indigo-400/20 rounded-full blur-xl"></div>
-                <button type="button" onclick="openCloudSetupModal()" class="absolute top-3.5 right-3.5 px-2.5 py-1.5 bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/25 rounded-xl text-[11px] font-semibold flex items-center gap-1.5 transition">
-                    <span id="login-cloud-dot" class="w-2 h-2 rounded-full bg-amber-400"></span>
-                    <span id="login-cloud-label">Mode Lokal</span>
-                </button>
                 <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner border border-white/30">
                     <i data-lucide="fingerprint" class="w-9 h-9 text-white"></i>
                 </div>
@@ -120,27 +116,6 @@
                         <i data-lucide="arrow-right" class="w-4 h-4"></i>
                     </button>
                 </form>
-
-                <!-- Info Akun Demo Cepat -->
-                <div class="mt-6 pt-5 border-t border-slate-100">
-                    <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider text-center mb-3">Akses Cepat Akun Demo</p>
-                    <div class="grid grid-cols-2 gap-2.5">
-                        <button type="button" onclick="fillDemoLogin('admin', 'admin123')" class="p-2.5 bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 rounded-xl text-left transition group">
-                            <div class="flex items-center justify-between">
-                                <span class="text-xs font-bold text-slate-700 group-hover:text-indigo-700">Admin Sekolah</span>
-                                <span class="px-1.5 py-0.5 text-[10px] font-semibold bg-amber-100 text-amber-700 rounded">Admin</span>
-                            </div>
-                            <p class="text-[11px] text-slate-500 mt-0.5">admin / admin123</p>
-                        </button>
-                        <button type="button" onclick="fillDemoLogin('guru1', 'guru123')" class="p-2.5 bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 rounded-xl text-left transition group">
-                            <div class="flex items-center justify-between">
-                                <span class="text-xs font-bold text-slate-700 group-hover:text-indigo-700">Budi Santoso</span>
-                                <span class="px-1.5 py-0.5 text-[10px] font-semibold bg-emerald-100 text-emerald-700 rounded">Guru</span>
-                            </div>
-                            <p class="text-[11px] text-slate-500 mt-0.5">guru1 / guru123</p>
-                        </button>
-                    </div>
-                </div>
             </div>
 
             <!-- Form Lupa Sandi -->
@@ -198,8 +173,8 @@
             </div>
 
             <div class="flex items-center gap-2">
-                <!-- Status & Pengaturan Cloud -->
-                <button onclick="openCloudSetupModal()" title="Pengaturan Sinkronisasi Cloud" class="px-2.5 py-2 bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 rounded-xl border border-slate-200 text-xs font-semibold flex items-center gap-1.5 transition">
+                <!-- Status & Pengaturan Cloud (Khusus Admin) -->
+                <button id="btn-header-cloud" onclick="openCloudSetupModal()" title="Pengaturan Sinkronisasi Cloud" class="hidden px-2.5 py-2 bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 rounded-xl border border-slate-200 text-xs font-semibold items-center gap-1.5 transition">
                     <span id="header-cloud-dot" class="w-2 h-2 rounded-full bg-amber-500"></span>
                     <span id="header-cloud-label" class="hidden sm:inline">Lokal</span>
                     <i data-lucide="cloud" class="w-3.5 h-3.5"></i>
@@ -824,15 +799,7 @@ Operator TU, 199503032020011005, tu_admin, admin999, admin"
             const url = getCloudUrl();
             const isConnected = Boolean(url);
 
-            // Update indikator di halaman Login
-            const loginDot = document.getElementById('login-cloud-dot');
-            const loginLabel = document.getElementById('login-cloud-label');
-            if (loginDot && loginLabel) {
-                loginDot.className = isConnected ? 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse' : 'w-2 h-2 rounded-full bg-amber-400';
-                loginLabel.textContent = isConnected ? 'Cloud Aktif' : 'Mode Lokal';
-            }
-
-            // Update indikator di Header Dashboard
+            // Update indikator di Header Dashboard (Khusus Admin)
             const headerDot = document.getElementById('header-cloud-dot');
             const headerLabel = document.getElementById('header-cloud-label');
             if (headerDot && headerLabel) {
@@ -1130,12 +1097,6 @@ Operator TU, 199503032020011005, tu_admin, admin999, admin"
         }
 
         // --- 4. AUTENTIKASI (LOGIN, LOGOUT, LUPA SANDI) ---
-        function fillDemoLogin(user, pass) {
-            document.getElementById('login-username').value = user;
-            document.getElementById('login-password').value = pass;
-            showToast(`Akun demo "${user}" diisi. Klik Masuk Sekarang.`, 'info');
-        }
-
         function togglePasswordVisibility(inputId, btn) {
             const input = document.getElementById(inputId);
             if (input.type === 'password') {
@@ -1232,9 +1193,14 @@ Operator TU, 199503032020011005, tu_admin, admin999, admin"
             document.getElementById('header-user-nip').textContent = `NIP/ID: ${currentUser.nip} • @${currentUser.username}`;
             
             const roleBadge = document.getElementById('header-user-role');
+            const btnCloud = document.getElementById('btn-header-cloud');
             if (currentUser.role === 'admin') {
                 roleBadge.textContent = 'Admin';
                 roleBadge.className = 'px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-amber-100 text-amber-800';
+                if (btnCloud) {
+                    btnCloud.classList.remove('hidden');
+                    btnCloud.classList.add('flex');
+                }
                 document.getElementById('guru-dashboard').classList.add('hidden');
                 document.getElementById('admin-dashboard').classList.remove('hidden');
                 document.getElementById('today-status-badge').textContent = 'Mode Administrator';
@@ -1242,6 +1208,10 @@ Operator TU, 199503032020011005, tu_admin, admin999, admin"
             } else {
                 roleBadge.textContent = 'Guru';
                 roleBadge.className = 'px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-emerald-100 text-emerald-800';
+                if (btnCloud) {
+                    btnCloud.classList.add('hidden');
+                    btnCloud.classList.remove('flex');
+                }
                 document.getElementById('admin-dashboard').classList.add('hidden');
                 document.getElementById('guru-dashboard').classList.remove('hidden');
                 document.getElementById('manual-date').value = getTodayISO();
